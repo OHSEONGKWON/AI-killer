@@ -1,6 +1,9 @@
 <template>
    <main class="container">
-    <section class="detection-area">
+    <div class="logo">
+       Tech up
+    </div>
+    <section class="detection-area">       
       <h2>텍스트 분석하기</h2>
       <div class="input-section">
         <textarea v-model="inputText" placeholder="여기에 텍스트를 입력해주세요."></textarea>
@@ -94,15 +97,6 @@ const clearText = () => {
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-/* 기본 리셋 */
 * {
     margin: 0;
     padding: 0;
