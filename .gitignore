@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+venv2/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+pnpm-lock.yaml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Secrets / envs
+.env
+.env.*
+secrets/
+credentials/
+*.pem
+*.key
+*.p12
+*.jks
+*.sqlite3
+
+# Logs / temp
+*.log
+logs/
+tmp/
+
+# Test / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Misc
+coverage.*

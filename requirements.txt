@@ -1,0 +1,9 @@
+# Requirements pinned from the project's venv (venv2)
+fastapi==0.118.2
+uvicorn==0.37.0
+pydantic==2.12.0
+starlette==0.48.0
+typing_extensions==4.15.0
+python-multipart==0.0.6
+python-dotenv==1.0.0
+# Add other dependencies used in your project as needed

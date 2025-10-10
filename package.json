@@ -1,0 +1,10 @@
+{
+  "name": "ai-killer",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "echo \"No JS app configured.\" && exit 0",
+    "test": "echo \"no tests\" && exit 0"
+  },
+  "dependencies": {}
+}
