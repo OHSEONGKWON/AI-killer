@@ -1,0 +1,12 @@
+# Development requirements for backend
+sentence-transformers
+openai
+numpy
+python-dotenv
+pytest
+pytest-asyncio
+httpx
+ruff
+black
+isort
+pre-commit
