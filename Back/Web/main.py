@@ -4,7 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import SQLModel
 import httpx
 import asyncio
-
+from .dependencies import get_db, get_current_user, get_current_admin_user
 # --- 🔽 프론트엔드 연결을 위한 CORS 미들웨어 import ---
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -109,6 +109,18 @@ async def delete_me(db = Depends(get_db), current_user: models.User = Depends(ge
         return {"message": "회원 탈퇴가 완료되었습니다."}
     raise HTTPException(status_code=404, detail="User not found")
 
+# 🔽🔽🔽 --- 로그아웃 API --- 🔽🔽🔽
+@app.post("/api/v1/auth/logout", description="현재 로그인된 사용자를 로그아웃 처리합니다.")
+async def logout(current_user: models.User = Depends(get_current_user)):
+    """
+    JWT 기반 로그아웃을 처리합니다.
+    실제 토큰 무효화는 클라이언트 측에서 JWT를 삭제함으로써 이루어집니다.
+    이 엔드포인트는 클라이언트에게 로그아웃 처리를 해도 좋다는 확인을 보내는 역할을 합니다.
+    """
+    
+    # 서버 측에서는 특별한 작업을 수행하지 않습니다.
+    # get_current_user 의존성을 통해 유효한 사용자인지만 확인합니다.
+    return {"message": "Successfully logged out"}
 
 # --- 관리자 API (관리자 인증 필요) 👮 ---
 @app.get("/api/v1/admin/users", response_model=List[models.UserResponse], description="전체 사용자 목록을 조회합니다.")
