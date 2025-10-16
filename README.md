@@ -20,3 +20,6 @@ Run the FastAPI app from `Back/app/main.py` (example):
 cd Back\app
 uvicorn main:app --reload
 ```
+
+<!-- Force-refresh commit to ensure GitHub shows latest Back branch content -->
+<!-- Timestamp: 2025-10-16 -->
