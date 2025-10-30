@@ -12,12 +12,14 @@
 
 from typing import List
 import asyncio
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 
 from ...dependencies import get_db
 from ... import models
 from ...similarity_analyzer import calculate_similarity_score
 from ...kobert_analyzer import calculate_kobert_score
+from ...crud_new import create_analysis_record
 
 router = APIRouter()
 
@@ -62,6 +64,20 @@ async def analyze(request: models.AnalysisRequest, db=Depends(get_db)):
         kobert_score=kobert_score,
         similarity_score=similarity_score,
     )
+
+    # 분석 결과를 DB에 저장
+    try:
+        await create_analysis_record(
+            db,
+            title=request.title,
+            content=request.content,
+            ai_probability=final_probability,
+            kobert_score=kobert_score,
+            similarity_score=similarity_score,
+            created_at=datetime.utcnow().isoformat(),
+        )
+    except Exception as e:
+        print(f"DB 저장 오류(무시하고 계속 진행): {e}")
 
     return models.AnalysisResponse(
         ai_probability=final_probability,

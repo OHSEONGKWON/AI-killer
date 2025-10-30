@@ -17,6 +17,7 @@ from sqlmodel import SQLModel
 
 from .database import engine
 from .api.v1 import router as api_v1_router
+from .analysis_models import AnalysisRecord  # DB 테이블 등록
 
 
 app = FastAPI(title="블로그/에세이 AI 작성 검증 API")
