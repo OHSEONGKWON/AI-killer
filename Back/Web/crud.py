@@ -11,6 +11,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select, delete
 
 from . import models, security
+from .analysis_models import AnalysisRecord
 
 # --- User CRUD ---
 async def get_user(db: AsyncSession, user_id: int):
@@ -62,3 +63,28 @@ async def delete_user(db: AsyncSession, user_id: int):
         await db.commit()
         return True
     return False
+
+# --- AnalysisRecord CRUD ---
+async def create_analysis_record(
+    db: AsyncSession, 
+    *, 
+    title: str, 
+    content: str, 
+    ai_probability: float, 
+    kobert_score: float, 
+    similarity_score: float, 
+    created_at: str = None
+) -> AnalysisRecord:
+    """분석 결과를 데이터베이스에 저장합니다."""
+    record = AnalysisRecord(
+        title=title,
+        content=content,
+        ai_probability=ai_probability,
+        kobert_score=kobert_score,
+        similarity_score=similarity_score,
+        created_at=created_at,
+    )
+    db.add(record)
+    await db.commit()
+    await db.refresh(record)
+    return record

@@ -56,42 +56,6 @@ class Token(SQLModel):
     access_token: str
     token_type: str
 
-# --- 하이라이팅 API 모델 ---
-class HighlightSegment(SQLModel):
-    """하이라이팅할 텍스트 구간 정보."""
-    text: str
-    start_index: int
-    end_index: int
-    ai_score: float  # 해당 구간의 AI-like 점수 (0~1)
-    reason: str  # 왜 AI-like인지 설명
-
-class HighlightRequest(SQLModel):
-    """하이라이팅 요청 바디."""
-    content: str
-
-class HighlightResponse(SQLModel):
-    """하이라이팅 응답: AI-like 구간 목록."""
-    segments: List[HighlightSegment]
-    overall_ai_ratio: float  # 전체 중 AI-like 비율
-
-# --- 어시스턴트 API 모델 ---
-class ImprovementSuggestion(SQLModel):
-    """개선 제안 항목."""
-    original_text: str
-    improved_text: str
-    improvement_type: str  # "creativity", "tone", "clarity" 등
-    explanation: str
-
-class AssistantRequest(SQLModel):
-    """글쓰기 어시스턴트 요청."""
-    content: str
-    improvement_focus: Optional[str] = "all"  # "creativity", "tone", "clarity", "all"
-
-class AssistantResponse(SQLModel):
-    """글쓰기 어시스턴트 응답."""
-    suggestions: List[ImprovementSuggestion]
-    overall_score: float  # 현재 글의 창의성/인간성 점수
-
 # --- 표절 검사 API 모델 ---
 class MatchedSource(SQLModel):
     """유사한 소스 정보."""
@@ -111,3 +75,22 @@ class PlagiarismResponse(SQLModel):
     overall_similarity: float  # 전체 유사도 점수
     matched_sources: List[MatchedSource]
     is_plagiarized: bool  # 임계치 기준 표절 여부
+
+# --- 문법 검사 API 모델 ---
+class GrammarError(SQLModel):
+    """문법 오류 정보."""
+    message: str  # 오류 설명
+    start_index: int
+    end_index: int
+    error_type: str  # "spelling", "grammar", "punctuation" 등
+    suggestions: List[str]  # 교정 제안 리스트
+
+class GrammarCheckRequest(SQLModel):
+    """문법검사 요청."""
+    content: str
+
+class GrammarCheckResponse(SQLModel):
+    """문법검사 응답."""
+    errors: List[GrammarError]
+    total_errors: int
+    corrected_text: Optional[str] = None  # (옵션) 자동 교정된 텍스트

@@ -26,28 +26,7 @@ from ...config import settings
 router = APIRouter()
 
 
-class GrammarError(models.SQLModel):
-    """문법 오류 정보."""
-    message: str  # 오류 설명
-    start_index: int
-    end_index: int
-    error_type: str  # "spelling", "grammar", "punctuation" 등
-    suggestions: List[str]  # 교정 제안 리스트
-
-
-class GrammarCheckRequest(models.SQLModel):
-    """문법검사 요청."""
-    content: str
-
-
-class GrammarCheckResponse(models.SQLModel):
-    """문법검사 응답."""
-    errors: List[GrammarError]
-    total_errors: int
-    corrected_text: str | None = None  # (옵션) 자동 교정된 텍스트
-
-
-async def call_grammar_api(text: str) -> List[GrammarError]:
+async def call_grammar_api(text: str) -> List[models.GrammarError]:
     """외부 문법검사 API를 호출하여 오류 목록을 반환합니다.
     
     실제 구현 예시:
@@ -71,14 +50,14 @@ async def call_grammar_api(text: str) -> List[GrammarError]:
     
     # 임시 모의 응답
     simulated_errors = [
-        GrammarError(
+        models.GrammarError(
             message="맞춤법 오류: '있다'를 '있다'로 수정",
             start_index=10,
             end_index=12,
             error_type="spelling",
             suggestions=["있다", "이따"]
         ),
-        GrammarError(
+        models.GrammarError(
             message="문법 오류: 주어-동사 불일치",
             start_index=25,
             end_index=30,
@@ -90,8 +69,8 @@ async def call_grammar_api(text: str) -> List[GrammarError]:
     return simulated_errors
 
 
-@router.post("/grammar/check", response_model=GrammarCheckResponse, summary="문법 검사")
-async def check_grammar(request: GrammarCheckRequest):
+@router.post("/grammar/check", response_model=models.GrammarCheckResponse, summary="문법 검사")
+async def check_grammar(request: models.GrammarCheckRequest):
     """입력 텍스트의 문법 오류를 외부 API로 검사합니다.
     
     처리 순서:
@@ -125,7 +104,7 @@ async def check_grammar(request: GrammarCheckRequest):
     #             corrected_text[error.end_index:]
     #         )
     
-    return GrammarCheckResponse(
+    return models.GrammarCheckResponse(
         errors=errors,
         total_errors=len(errors),
         corrected_text=None  # 자동 교정 기능 추가 시 활성화
