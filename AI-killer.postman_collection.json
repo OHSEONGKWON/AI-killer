@@ -2,9 +2,9 @@
 	"info": {
 		"_postman_id": "ai-killer-api-collection",
 		"name": "AI-killer API Collection",
-		"description": "블로그/에세이 AI 작성 검증 및 글쓰기 지원 API",
+		"description": "한국어 논문/에세이 AI 작성 검증, 표절 검사, 문법 검사 API",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"version": "1.0.0"
+		"version": "2.0.0"
 	},
 	"variable": [
 		{
@@ -20,7 +20,7 @@
 	],
 	"item": [
 		{
-			"name": "분석 & AI 검증",
+			"name": "AI 분석",
 			"item": [
 				{
 					"name": "AI 작성 확률 분석",
@@ -34,7 +34,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"title\": \"블로그 제목\",\n  \"content\": \"분석할 블로그/에세이 본문 텍스트...\"\n}"
+							"raw": "{\n  \"title\": \"논문 제목\",\n  \"content\": \"분석할 논문 초록 또는 에세이 본문 텍스트...\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/v1/analyze",
@@ -47,7 +47,7 @@
 								"analyze"
 							]
 						},
-						"description": "블로그/에세이의 AI 작성 확률을 분석합니다.\n\n**응답:**\n- ai_probability: 최종 AI 작성 확률 (0~1)\n- kobert_score: KoBERT 점수 (0~1)\n- similarity_score: 유사도 점수 (0~1)"
+						"description": "한국어 논문 초록/에세이의 AI 작성 확률을 KoBERT 모델로 분석합니다.\n\n**요청:**\n- title: 제목\n- content: 분석할 본문 텍스트\n\n**응답:**\n- ai_probability: 최종 AI 작성 확률 (0~1)\n- analysis_details:\n  - kobert_score: KoBERT 분석 점수 (0~1)\n  - similarity_score: 0.0 (더 이상 사용하지 않음)\n\n**참고:** 결과는 데이터베이스에 자동으로 저장됩니다."
 					},
 					"response": [
 						{
@@ -57,7 +57,7 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"title\": \"블로그 제목\",\n  \"content\": \"분석할 블로그 본문\"\n}"
+									"raw": "{\n  \"title\": \"인공지능의 발전\",\n  \"content\": \"최근 인공지능 기술의 발전은 놀라운 속도로 진행되고 있다.\"\n}"
 								},
 								"url": {
 									"raw": "{{baseUrl}}/api/v1/analyze",
@@ -80,74 +80,15 @@
 									"value": "application/json"
 								}
 							],
-							"body": "{\n  \"ai_probability\": 0.75,\n  \"analysis_details\": {\n    \"kobert_score\": 0.8,\n    \"similarity_score\": 0.7\n  }\n}"
+							"body": "{\n  \"ai_probability\": 0.85,\n  \"analysis_details\": {\n    \"kobert_score\": 0.85,\n    \"similarity_score\": 0.0\n  }\n}"
 						}
 					]
-				},
-				{
-					"name": "AI-like 문장 하이라이팅",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"content\": \"중요한 점은 블로그를 작성할 때 독자의 관심을 끌어야 합니다. 결론적으로 좋은 콘텐츠를 만들 수 있습니다.\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/highlighting/analyze",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"highlighting",
-								"analyze"
-							]
-						},
-						"description": "AI가 작성한 것처럼 보이는 문장을 찾아 하이라이팅합니다.\n\n**응답:**\n- segments: 하이라이팅할 구간 목록\n- overall_ai_ratio: 전체 텍스트 중 AI-like 비율"
-					},
-					"response": [
-						{
-							"name": "성공 응답",
-							"originalRequest": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"content\": \"중요한 점은 블로그를 작성할 때 독자의 관심을 끌어야 합니다.\"\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/highlighting/analyze",
-									"host": [
-										"{{baseUrl}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"highlighting",
-										"analyze"
-									]
-								}
-							},
-							"status": "OK",
-							"code": 200,
-							"_postman_previewlanguage": "json",
-							"header": [
-								{
-									"key": "Content-Type",
-									"value": "application/json"
-								}
-							],
-							"body": "{\n  \"segments\": [\n    {\n      \"text\": \"중요한 점은 블로그를 작성할 때 독자의 관심을 끌어야 합니다.\",\n      \"start_index\": 0,\n      \"end_index\": 38,\n      \"ai_score\": 0.7,\n      \"reason\": \"형식적인 강조 표현\"\n    }\n  ],\n  \"overall_ai_ratio\": 0.85\n}"
-						}
-					]
-				},
+				}
+			]
+		},
+		{
+			"name": "표절 검사",
+			"item": [
 				{
 					"name": "표절/유사도 검사",
 					"request": {
@@ -174,7 +115,7 @@
 								"check"
 							]
 						},
-						"description": "웹 검색 및 내부 DB를 통해 유사한 콘텐츠를 찾습니다.\n\n**파라미터:**\n- content: 검사할 텍스트\n- check_web: 웹 검색 활성화 (기본값: true)\n- check_internal: 내부 DB 검사 활성화 (기본값: false)\n\n**응답:**\n- overall_similarity: 전체 유사도 점수 (0~1)\n- matched_sources: 유사한 소스 목록\n- is_plagiarized: 표절 여부 (0.7 이상 시 true)"
+						"description": "웹 검색을 통해 유사한 콘텐츠를 찾아 표절 여부를 검사합니다.\n\n**요청:**\n- content: 검사할 텍스트\n- check_web: 웹 검색 활성화 (기본값: true)\n- check_internal: 내부 DB 검사 활성화 (기본값: false)\n\n**응답:**\n- overall_similarity: 전체 유사도 점수 (0~1)\n- matched_sources: 유사한 소스 목록\n- is_plagiarized: 표절 여부 (0.7 이상 시 true)\n\n**참고:** 현재는 시뮬레이션 응답을 반환합니다. 실제 외부 API 연동 시 PLAGIARISM_API_URL과 PLAGIARISM_API_KEY가 필요합니다."
 					},
 					"response": [
 						{
@@ -215,10 +156,10 @@
 			]
 		},
 		{
-			"name": "글쓰기 지원",
+			"name": "문법 검사",
 			"item": [
 				{
-					"name": "글쓰기 개선 제안",
+					"name": "문법 검사",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -229,21 +170,21 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"content\": \"이 글에서 중요한 점은 독자에게 도움이 되는 것입니다.\",\n  \"improvement_focus\": \"creativity\"\n}"
+							"raw": "{\n  \"content\": \"맞춤법과 문법을 검사할 텍스트입니다.\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/v1/assistant/improve",
+							"raw": "{{baseUrl}}/api/v1/grammar/check",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
 								"v1",
-								"assistant",
-								"improve"
+								"grammar",
+								"check"
 							]
 						},
-						"description": "더 인간적이고 창의적인 글로 개선할 수 있는 제안을 제공합니다.\n\n**파라미터:**\n- content: 분석할 텍스트\n- improvement_focus: 개선 초점\n  - creativity: 창의성\n  - tone: 어조\n  - clarity: 명료성\n  - all: 전체 (기본값)\n\n**응답:**\n- suggestions: 개선 제안 목록\n- overall_score: 현재 글의 창의성/인간성 점수 (0~100)"
+						"description": "외부 문법 검사 API를 통해 텍스트의 맞춤법, 문법 오류를 검사합니다.\n\n**요청:**\n- content: 검사할 텍스트\n\n**응답:**\n- errors: 문법 오류 목록\n  - message: 오류 설명\n  - start_index: 오류 시작 위치\n  - end_index: 오류 종료 위치\n  - error_type: 오류 유형 (spelling, grammar, punctuation 등)\n  - suggestions: 교정 제안 리스트\n- total_errors: 총 오류 개수\n- corrected_text: 자동 교정된 텍스트 (옵션, 현재는 null)\n\n**참고:** 현재는 시뮬레이션 응답을 반환합니다. 실제 외부 API 연동 시 GRAMMAR_API_URL과 GRAMMAR_API_KEY가 필요합니다."
 					},
 					"response": [
 						{
@@ -253,18 +194,18 @@
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"content\": \"이 글에서 중요한 점은 독자에게 도움이 되는 것입니다.\",\n  \"improvement_focus\": \"creativity\"\n}"
+									"raw": "{\n  \"content\": \"맞춤법과 문법을 검사할 텍스트입니다.\"\n}"
 								},
 								"url": {
-									"raw": "{{baseUrl}}/api/v1/assistant/improve",
+									"raw": "{{baseUrl}}/api/v1/grammar/check",
 									"host": [
 										"{{baseUrl}}"
 									],
 									"path": [
 										"api",
 										"v1",
-										"assistant",
-										"improve"
+										"grammar",
+										"check"
 									]
 								}
 							},
@@ -277,80 +218,7 @@
 									"value": "application/json"
 								}
 							],
-							"body": "{\n  \"suggestions\": [\n    {\n      \"original_text\": \"중요한 점은\",\n      \"improved_text\": \"핵심은\",\n      \"improvement_type\": \"creativity\",\n      \"explanation\": \"더 직관적인 표현으로 바꾸면 읽기 편해요\"\n    }\n  ],\n  \"overall_score\": 65.5\n}"
-						}
-					]
-				},
-				{
-					"name": "문장 리라이팅",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/api/v1/assistant/rewrite?content=이것은 중요한 내용입니다&style=creative",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"assistant",
-								"rewrite"
-							],
-							"query": [
-								{
-									"key": "content",
-									"value": "이것은 중요한 내용입니다",
-									"description": "다시 쓸 문장"
-								},
-								{
-									"key": "style",
-									"value": "creative",
-									"description": "리라이팅 스타일 (creative, casual, formal)"
-								}
-							]
-						},
-						"description": "특정 문장을 더 창의적이거나 자연스럽게 다시 작성합니다.\n\n**파라미터:**\n- content: 다시 쓸 문장 (필수)\n- style: 리라이팅 스타일 (기본값: creative)\n  - creative: 창의적\n  - casual: 캐주얼\n  - formal: 격식"
-					},
-					"response": [
-						{
-							"name": "성공 응답",
-							"originalRequest": {
-								"method": "POST",
-								"header": [],
-								"url": {
-									"raw": "{{baseUrl}}/api/v1/assistant/rewrite?content=이것은 중요한 내용입니다&style=creative",
-									"host": [
-										"{{baseUrl}}"
-									],
-									"path": [
-										"api",
-										"v1",
-										"assistant",
-										"rewrite"
-									],
-									"query": [
-										{
-											"key": "content",
-											"value": "이것은 중요한 내용입니다"
-										},
-										{
-											"key": "style",
-											"value": "creative"
-										}
-									]
-								}
-							},
-							"status": "OK",
-							"code": 200,
-							"_postman_previewlanguage": "json",
-							"header": [
-								{
-									"key": "Content-Type",
-									"value": "application/json"
-								}
-							],
-							"body": "{\n  \"original\": \"이것은 중요한 내용입니다\",\n  \"rewritten\": \"이것은 핵심적인 내용이에요\",\n  \"style\": \"creative\",\n  \"explanation\": \"creative 스타일로 더 자연스럽게 다시 작성했어요\"\n}"
+							"body": "{\n  \"errors\": [\n    {\n      \"message\": \"맞춤법 오류: '있다'를 '있다'로 수정\",\n      \"start_index\": 10,\n      \"end_index\": 12,\n      \"error_type\": \"spelling\",\n      \"suggestions\": [\"있다\", \"이따\"]\n    },\n    {\n      \"message\": \"문법 오류: 주어-동사 불일치\",\n      \"start_index\": 25,\n      \"end_index\": 30,\n      \"error_type\": \"grammar\",\n      \"suggestions\": [\"입니다\", \"이다\"]\n    }\n  ],\n  \"total_errors\": 2,\n  \"corrected_text\": null\n}"
 						}
 					]
 				}
