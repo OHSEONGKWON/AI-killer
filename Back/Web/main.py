@@ -6,6 +6,7 @@ FastAPI 메인 엔트리 포인트.
 - FastAPI 앱 생성 및 전역 미들웨어(CORS) 설정
 - 서버 시작 시점에 SQLModel 메타데이터로 테이블 생성
 - 버전별 라우터(v1)를 앱에 등록하여 엔드포인트 제공
+- 로깅 시스템 초기화
 
 주의:
 - 비즈니스 로직이나 엔드포인트 구현은 api/v1/* 라우터 파일로 분리합니다.
@@ -17,6 +18,11 @@ from sqlmodel import SQLModel
 
 from .database import engine
 from .api.v1 import router as api_v1_router
+from .logging_config import setup_logging, get_logger
+
+# 로깅 초기화 (환경변수 LOG_LEVEL, JSON_LOGS, SENTRY_DSN 사용)
+setup_logging()
+logger = get_logger(__name__)
 from .analysis_models import AnalysisRecord  # DB 테이블 등록
 
 
@@ -41,9 +47,22 @@ app.add_middleware(
 # 서버 시작 시 DB 테이블 자동 생성
 @app.on_event("startup")
 async def on_startup():
+    """애플리케이션 시작 시 초기화 작업."""
+    logger.info("서버 시작 중...", extra={"app_title": app.title})
+    
     # 비동기 엔진 컨텍스트에서 메타데이터 기반 테이블 생성
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+    
+    logger.info("데이터베이스 테이블 생성 완료")
+
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    """애플리케이션 종료 시 정리 작업."""
+    logger.info("서버 종료 중...")
+    await engine.dispose()
+    logger.info("데이터베이스 연결 정리 완료")
 
 
 # 버전 라우터 등록 (모든 v1 엔드포인트는 /api/v1/* 경로로 노출)

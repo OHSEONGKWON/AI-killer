@@ -9,3 +9,43 @@ description = "AI-killer project"
 authors = [ { name = "Your Name" } ]
 readme = "README.md"
 requires-python = ">=3.9"
+
+# Ruff 린터/포매터 설정
+# 문서: https://docs.astral.sh/ruff/
+
+[tool.ruff]
+# Python 3.11 이상 타겟
+target-version = "py311"
+
+# 제외할 디렉터리
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "*.egg-info",
+    "Back/Web/alembic/versions",  # 마이그레이션 파일은 자동 생성이므로 제외
+    "build",
+    "dist",
+]
+
+# 한 줄 최대 길이
+line-length = 120
+
+[tool.ruff.lint]
+# 활성화할 린트 규칙
+select = ["E", "F", "I", "N", "W", "UP", "B"]
+
+# 무시할 규칙
+ignore = [
+    "E501",  # 줄 길이 초과
+    "B008",  # 함수 호출을 기본값으로 사용 (FastAPI 의존성)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# 테스트 파일에서는 일부 규칙 무시
+"tests/**/*.py" = ["F401", "F811"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

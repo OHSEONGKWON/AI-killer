@@ -11,18 +11,21 @@ from sqlmodel import Field, SQLModel
 
 # --- 분석 API 모델 ---
 class AnalysisRequest(SQLModel):
-    """분석 요청 바디: 제목과 본문 텍스트."""
+    """분석 요청 바디: 제목, 본문 텍스트, 텍스트 유형."""
     title: str
     content: str  # 블로그/에세이 본문
+    text_type: Optional[str] = "paper"  # paper, essay, blog 등
 
 class AnalysisDetails(SQLModel):
-    """세부 점수: 모듈별 점수 구성."""
-    kobert_score: float
-    similarity_score: float
+    """세부 점수: 4가지 AI 검출 지표."""
+    kobert_score: float  # KoBERT AI 분류 확률 (0.0~1.0)
+    similarity_score: float  # SBERT 코사인 유사도 (0.0~1.0)
+    perplexity_score: Optional[float] = 0.0  # Perplexity 점수 (0.0~1.0)
+    burstiness_score: Optional[float] = 0.0  # Burstiness 점수 (0.0~1.0)
 
 class AnalysisResponse(SQLModel):
     """분석 응답: 최종 확률과 세부 점수."""
-    ai_probability: float
+    ai_probability: float  # 가중치 적용된 최종 AI 확률
     analysis_details: AnalysisDetails
 
 # --- 인증/유저 API 모델 ---
@@ -94,3 +97,47 @@ class GrammarCheckResponse(SQLModel):
     errors: List[GrammarError]
     total_errors: int
     corrected_text: Optional[str] = None  # (옵션) 자동 교정된 텍스트
+
+# --- 분석 설정 모델 (Admin) ---
+class AnalysisConfigBase(SQLModel):
+    """분석 설정 공통 필드."""
+    text_type: str = Field(index=True, unique=True, description="텍스트 유형 (paper, essay, blog, etc.)")
+    description: Optional[str] = Field(default=None, description="설정 설명")
+    
+    # 4가지 분석 지표 가중치 (합이 1.0이 되도록 권장)
+    sbert_weight: float = Field(default=0.25, ge=0.0, le=1.0, description="SBERT 코사인 유사도 가중치")
+    kobert_weight: float = Field(default=0.35, ge=0.0, le=1.0, description="KoBERT AI 분류 확률 가중치")
+    perplexity_weight: float = Field(default=0.20, ge=0.0, le=1.0, description="Perplexity 가중치")
+    burstiness_weight: float = Field(default=0.20, ge=0.0, le=1.0, description="Burstiness 가중치")
+    
+    # 메타 정보
+    is_active: bool = Field(default=True, description="활성화 여부")
+    is_default: bool = Field(default=False, description="기본 설정 여부")
+
+
+class AnalysisConfig(AnalysisConfigBase, table=True):
+    """분석 설정 DB 테이블."""
+    __tablename__ = "analysis_config"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+
+
+class AnalysisConfigCreate(AnalysisConfigBase):
+    """분석 설정 생성 요청."""
+    pass
+
+
+class AnalysisConfigUpdate(SQLModel):
+    """분석 설정 수정 요청 (모든 필드 선택적)."""
+    description: Optional[str] = None
+    sbert_weight: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    kobert_weight: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    perplexity_weight: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    burstiness_weight: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    is_active: Optional[bool] = None
+    is_default: Optional[bool] = None
+
+
+class AnalysisConfigResponse(AnalysisConfigBase):
+    """분석 설정 응답."""
+    id: int

@@ -6,7 +6,7 @@
   이 모듈은 DB 읽기/쓰기 책임만 가집니다.
 """
 
-from typing import List
+from typing import List, Optional
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import select, delete
 
@@ -88,3 +88,79 @@ async def create_analysis_record(
     await db.commit()
     await db.refresh(record)
     return record
+
+
+# --- AnalysisConfig CRUD ---
+async def get_analysis_config(db: AsyncSession, text_type: str) -> Optional[models.AnalysisConfig]:
+    """텍스트 유형으로 분석 설정을 조회합니다."""
+    statement = select(models.AnalysisConfig).where(
+        models.AnalysisConfig.text_type == text_type,
+        models.AnalysisConfig.is_active == True
+    )
+    result = await db.exec(statement)
+    return result.first()
+
+
+async def get_default_analysis_config(db: AsyncSession) -> Optional[models.AnalysisConfig]:
+    """기본 분석 설정을 조회합니다."""
+    statement = select(models.AnalysisConfig).where(
+        models.AnalysisConfig.is_default == True,
+        models.AnalysisConfig.is_active == True
+    )
+    result = await db.exec(statement)
+    return result.first()
+
+
+async def get_all_analysis_configs(db: AsyncSession) -> List[models.AnalysisConfig]:
+    """모든 분석 설정을 조회합니다."""
+    statement = select(models.AnalysisConfig)
+    result = await db.exec(statement)
+    return result.all()
+
+
+async def create_analysis_config(
+    db: AsyncSession, 
+    config: models.AnalysisConfigCreate
+) -> models.AnalysisConfig:
+    """새로운 분석 설정을 생성합니다."""
+    db_config = models.AnalysisConfig.model_validate(config)
+    db.add(db_config)
+    await db.commit()
+    await db.refresh(db_config)
+    return db_config
+
+
+async def update_analysis_config(
+    db: AsyncSession,
+    text_type: str,
+    config_update: models.AnalysisConfigUpdate
+) -> Optional[models.AnalysisConfig]:
+    """분석 설정을 수정합니다."""
+    statement = select(models.AnalysisConfig).where(models.AnalysisConfig.text_type == text_type)
+    result = await db.exec(statement)
+    db_config = result.first()
+    
+    if not db_config:
+        return None
+    
+    # 수정된 필드만 업데이트
+    update_data = config_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_config, key, value)
+    
+    await db.commit()
+    await db.refresh(db_config)
+    return db_config
+
+
+async def delete_analysis_config(db: AsyncSession, text_type: str) -> bool:
+    """분석 설정을 삭제합니다."""
+    statement = select(models.AnalysisConfig).where(models.AnalysisConfig.text_type == text_type)
+    result = await db.exec(statement)
+    config = result.first()
+    
+    if config:
+        await db.delete(config)
+        await db.commit()
+        return True
+    return False
