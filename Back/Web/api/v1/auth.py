@@ -1,34 +1,219 @@
 """
 인증(auth) 관련 라우터.
 
-현재 상태:
-- 카카오 로그인 콜백은 실제 카카오 API 연동 전, 임시 사용자 생성/토큰 발급 로직으로 동작합니다.
-- 로그아웃은 서버 상태를 변경하지 않고, 클라이언트가 JWT를 폐기하도록 안내만 합니다.
+주요 기능:
+- 카카오 로그인 OAuth 2.0 플로우
+- 일반 로그인/회원가입
+- JWT 토큰 발급 및 검증
 """
 
-from fastapi import APIRouter, Depends
+import os
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import RedirectResponse
+import httpx
 
 from ...dependencies import get_db, get_current_user
 from ... import models, security, crud
 
 router = APIRouter()
 
+# 환경변수에서 카카오 설정 읽기
+KAKAO_REST_API_KEY = os.getenv("KAKAO_REST_API_KEY")
+KAKAO_REDIRECT_URI = os.getenv("KAKAO_REDIRECT_URI", "http://localhost:8000/api/v1/auth/kakao/callback")
 
-@router.post("/auth/kakao/callback", response_model=models.Token, summary="카카오 로그인 콜백")
-async def kakao_login(kakao_code: models.KakaoCode, db=Depends(get_db)):
-    """카카오 인증 이후 전달된 code로 사용자 식별 후 JWT 발급(임시 로직).
 
-    실제 연동 시에는 카카오 토큰 교환 → 사용자 정보 조회 → 내부 사용자 연동 순으로 구현합니다.
+@router.get("/auth/kakao", summary="카카오 로그인 시작")
+async def kakao_login_start():
     """
-    # 임시: code 값을 기반으로 가상의 username 구성
-    username_for_token = "kakao_user_" + kakao_code.code
-    user = await crud.get_user_by_username(db, username=username_for_token)
-    if not user:
-        # 임시 사용자 정보로 가입 처리
-        user_info = {"id": 123456789, "nickname": username_for_token, "email": "kakao@example.com"}
-        user = await crud.create_kakao_user(db, user_info=user_info)
+    카카오 로그인 페이지로 리다이렉트합니다.
+    
+    Vue 프론트엔드에서 이 엔드포인트를 호출하면 카카오 로그인 페이지로 이동합니다.
+    사용자가 로그인하면 KAKAO_REDIRECT_URI로 code와 함께 리다이렉트됩니다.
+    
+    흐름:
+    1. Vue에서 GET /api/v1/auth/kakao 호출
+    2. 카카오 로그인 페이지로 리다이렉트
+    3. 사용자 로그인
+    4. 카카오가 /api/v1/auth/kakao/callback?code=xxx 로 리다이렉트
+    5. 콜백에서 토큰 발급
+    """
+    if not KAKAO_REST_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="카카오 REST API 키가 설정되지 않았습니다. .env 파일을 확인하세요."
+        )
+    
+    # 카카오 인증 URL 생성
+    kakao_auth_url = (
+        f"https://kauth.kakao.com/oauth/authorize"
+        f"?client_id={KAKAO_REST_API_KEY}"
+        f"&redirect_uri={KAKAO_REDIRECT_URI}"
+        f"&response_type=code"
+    )
+    
+    return RedirectResponse(url=kakao_auth_url)
 
-    # JWT 발급: sub(subject)에 username을 담습니다.
+
+@router.get("/auth/kakao/callback", summary="카카오 로그인 콜백")
+async def kakao_callback(code: str, db=Depends(get_db)):
+    """
+    카카오 로그인 후 리다이렉트되는 콜백 엔드포인트입니다.
+    
+    처리 순서:
+    1. code로 카카오 액세스 토큰 발급
+    2. 액세스 토큰으로 사용자 정보 조회
+    3. 사용자 정보로 회원가입/로그인 처리
+    4. JWT 토큰 발급
+    5. 프론트엔드로 리다이렉트 (토큰 전달)
+    """
+    if not KAKAO_REST_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="카카오 REST API 키가 설정되지 않았습니다."
+        )
+    
+    try:
+        # 1. 카카오 액세스 토큰 발급
+        async with httpx.AsyncClient() as client:
+            token_response = await client.post(
+                "https://kauth.kakao.com/oauth/token",
+                data={
+                    "grant_type": "authorization_code",
+                    "client_id": KAKAO_REST_API_KEY,
+                    "redirect_uri": KAKAO_REDIRECT_URI,
+                    "code": code,
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            
+            if token_response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"카카오 토큰 발급 실패: {token_response.text}"
+                )
+            
+            token_data = token_response.json()
+            kakao_access_token = token_data["access_token"]
+            
+            # 2. 카카오 사용자 정보 조회
+            user_response = await client.get(
+                "https://kapi.kakao.com/v2/user/me",
+                headers={"Authorization": f"Bearer {kakao_access_token}"},
+            )
+            
+            if user_response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"카카오 사용자 정보 조회 실패: {user_response.text}"
+                )
+            
+            user_data = user_response.json()
+            kakao_id = user_data["id"]
+            kakao_account = user_data.get("kakao_account", {})
+            profile = kakao_account.get("profile", {})
+            
+            # 3. 사용자 정보 추출
+            nickname = profile.get("nickname", f"kakao_user_{kakao_id}")
+            email = kakao_account.get("email", f"kakao_{kakao_id}@kakao.user")
+            
+            # 4. 데이터베이스에서 사용자 조회/생성
+            user = await crud.get_user_by_kakao_id(db, kakao_id=kakao_id)
+            
+            if not user:
+                # 신규 사용자 생성
+                user_info = {
+                    "id": kakao_id,
+                    "nickname": nickname,
+                    "email": email,
+                }
+                user = await crud.create_kakao_user(db, user_info=user_info)
+            
+            # 5. JWT 토큰 발급
+            access_token = security.create_access_token(data={"sub": user.username})
+            
+            # 6. 프론트엔드로 리다이렉트 (토큰 전달)
+            # Vue 프론트엔드 주소로 리다이렉트 (토큰을 쿼리 파라미터로 전달)
+            frontend_url = os.getenv("FRONTEND_URL", "http://localhost:8080")
+            redirect_url = f"{frontend_url}/auth/callback?token={access_token}"
+            
+            return RedirectResponse(url=redirect_url)
+    
+    except httpx.HTTPError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"카카오 API 호출 중 오류 발생: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"카카오 로그인 처리 중 오류 발생: {str(e)}"
+        )
+
+
+@router.post("/auth/register", response_model=models.UserResponse, summary="회원가입")
+async def register(user_create: models.UserCreate, db=Depends(get_db)):
+    """
+    일반 회원가입 (이메일/비밀번호 방식)
+    
+    Args:
+        user_create: username, email, password
+    
+    Returns:
+        생성된 사용자 정보
+    """
+    # 중복 체크
+    existing_user = await crud.get_user_by_username(db, username=user_create.username)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="이미 존재하는 사용자명입니다."
+        )
+    
+    # 비밀번호 해시화
+    hashed_password = security.get_password_hash(user_create.password)
+    
+    # 사용자 생성
+    db_user = models.User(
+        username=user_create.username,
+        email=user_create.email,
+        hashed_password=hashed_password,
+        is_admin=False
+    )
+    db.add(db_user)
+    await db.commit()
+    await db.refresh(db_user)
+    
+    return db_user
+
+
+@router.post("/auth/login", response_model=models.Token, summary="로그인")
+async def login(username: str, password: str, db=Depends(get_db)):
+    """
+    일반 로그인 (이메일/비밀번호 방식)
+    
+    Args:
+        username: 사용자명
+        password: 비밀번호
+    
+    Returns:
+        JWT 액세스 토큰
+    """
+    # 사용자 조회
+    user = await crud.get_user_by_username(db, username=username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="잘못된 사용자명 또는 비밀번호입니다."
+        )
+    
+    # 비밀번호 검증
+    if not security.verify_password(password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="잘못된 사용자명 또는 비밀번호입니다."
+        )
+    
+    # JWT 토큰 발급
     access_token = security.create_access_token(data={"sub": user.username})
     return models.Token(access_token=access_token, token_type="bearer")
 

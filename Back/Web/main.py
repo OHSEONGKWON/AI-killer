@@ -31,8 +31,14 @@ app = FastAPI(title="블로그/에세이 AI 작성 검증 API")
 # --- 🔽 프론트엔드 연결을 위한 CORS 설정 ---
 # 프론트 개발 서버 주소를 여기 배열에 추가하면 됩니다.
 origins = [
-    "http://localhost:8080",  # Vue 개발 서버 기본 주소
+    "http://localhost:8080",     # Vue 개발 서버 기본 주소
     "http://127.0.0.1:8080",
+    "http://localhost:3000",     # React/Next.js 기본 포트
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",     # Vite 기본 포트
+    "http://127.0.0.1:5173",
+    "http://localhost:4200",     # Angular 기본 포트
+    "http://127.0.0.1:4200",
 ]
 
 app.add_middleware(
