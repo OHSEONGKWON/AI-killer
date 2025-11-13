@@ -153,56 +153,50 @@ async def kakao_callback(code: str, db=Depends(get_db)):
 @router.post("/auth/register", response_model=models.UserResponse, summary="회원가입")
 async def register(user_create: models.UserCreate, db=Depends(get_db)):
     """
-    일반 회원가입 (이메일/비밀번호 방식)
+    회원가입 API
     
-    Args:
-        user_create: username, email, password
+    요청 데이터:
+    - email: 이메일 주소
+    - password: 비밀번호 (6~72자)
     
-    Returns:
-        생성된 사용자 정보
+    응답:
+    - id, username, email, is_admin
     """
-    try:
-        # 중복 체크 (username과 email 모두)
-        existing_user = await crud.get_user_by_username(db, username=user_create.username)
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="이미 존재하는 사용자명입니다."
-            )
-        
-        existing_email = await crud.get_user_by_email(db, email=user_create.email)
-        if existing_email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="이미 등록된 이메일입니다."
-            )
-        
-        # 비밀번호 해시화
-        hashed_password = security.get_password_hash(user_create.password)
-        
-        # 사용자 생성
-        db_user = models.User(
-            username=user_create.username,
-            email=user_create.email,
-            hashed_password=hashed_password,
-            is_admin=False
-        )
-        db.add(db_user)
-        await db.commit()
-        await db.refresh(db_user)
-        
-        return db_user
-    except HTTPException:
-        raise
-    except Exception as e:
-        await db.rollback()
-        print(f"회원가입 오류: {type(e).__name__}: {str(e)}")
-        import traceback
-        traceback.print_exc()
+    # 이메일 중복 체크
+    existing = await crud.get_user_by_email(db, email=user_create.email)
+    if existing:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"회원가입 중 오류가 발생했습니다: {str(e)}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="이미 등록된 이메일입니다."
         )
+    
+    # username은 이메일의 @ 앞부분으로 자동 생성
+    username = user_create.email.split('@')[0]
+    
+    # username 중복 시 숫자 추가
+    base_username = username
+    counter = 1
+    while await crud.get_user_by_username(db, username=username):
+        username = f"{base_username}{counter}"
+        counter += 1
+    
+    # 비밀번호 해시화
+    hashed_password = security.get_password_hash(user_create.password)
+    
+    # 사용자 생성
+    new_user = models.User(
+        username=username,
+        email=user_create.email,
+        hashed_password=hashed_password,
+        is_admin=False,
+        kakao_id=None
+    )
+    
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+    
+    return new_user
 
 
 @router.post("/auth/login", response_model=models.Token, summary="로그인")

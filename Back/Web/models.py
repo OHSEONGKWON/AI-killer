@@ -34,9 +34,10 @@ class UserBase(SQLModel):
     username: str = Field(unique=True, index=True)
     email: str = Field(unique=True)
 
-class UserCreate(UserBase):
+class UserCreate(SQLModel):
     """회원가입 시 사용하는 바디 모델(패스워드 포함)."""
-    password: str = Field(min_length=6, max_length=50, description="비밀번호 (6~50자)")
+    email: str = Field(description="이메일 주소")
+    password: str = Field(min_length=6, max_length=72, description="비밀번호 (6~72자)")
 
 class UserResponse(UserBase):
     """클라이언트에 반환할 유저 정보 스키마."""

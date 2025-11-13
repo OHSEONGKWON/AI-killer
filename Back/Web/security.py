@@ -17,14 +17,18 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password, hashed_password):
     """평문 비밀번호와 해시를 비교 검증합니다."""
+    # bcrypt는 72바이트 제한이 있으므로 잘라서 처리
+    if isinstance(plain_password, str):
+        plain_password = plain_password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
     return pwd_context.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password):
-    """비밀번호 해시를 생성합니다. bcrypt는 최대 72바이트까지 지원."""
-    # bcrypt는 72바이트 제한이 있으므로 자동으로 잘라줌
-    truncated_password = password[:72]
-    return pwd_context.hash(truncated_password)
+    """비밀번호 해시를 생성합니다."""
+    # bcrypt는 72바이트 제한이 있으므로 잘라서 처리
+    if isinstance(password, str):
+        password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+    return pwd_context.hash(password)
 
 
 def create_access_token(data: dict):
