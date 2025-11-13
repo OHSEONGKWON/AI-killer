@@ -7,8 +7,8 @@
         <input type="email" id="email" v-model="email" placeholder="이메일을 입력하세요" required>
       </div>
       <div class="form-group">
-        <label for="password">비밀번호 (6~50자)</label>
-        <input type="password" id="password" v-model="password" placeholder="비밀번호를 입력하세요" required minlength="6" maxlength="50">
+        <label for="password">비밀번호 (6~72자)</label>
+        <input type="password" id="password" v-model="password" placeholder="비밀번호를 입력하세요" required minlength="6" maxlength="72">
       </div>
       <div class="form-group">
         <label for="password-confirm">비밀번호 확인</label>
@@ -44,8 +44,8 @@ const submitForm = async () => {
     return;
   }
   
-  if (password.value.length > 50) {
-    alert('비밀번호는 최대 50자까지 가능합니다.');
+  if (password.value.length > 72) {
+    alert('비밀번호는 최대 72자까지 가능합니다.');
     return;
   }
   
@@ -56,23 +56,24 @@ const submitForm = async () => {
 
   loading.value = true;
   try {
-    await authAPI.register({
-      username: email.value.split('@')[0], // 이메일의 @ 앞부분을 username으로 사용
+    // 이메일과 비밀번호만 전송 (username은 백엔드에서 자동 생성)
+    const response = await authAPI.register({
       email: email.value,
       password: password.value,
     });
 
+    console.log('회원가입 성공:', response.data);
     alert('회원가입에 성공했습니다!');
     router.push('/login'); 
 
   } catch (error) {
+    console.error('회원가입 에러:', error);
     if (error.response) {
       const detail = error.response.data.detail || '회원가입 실패';
       alert(`회원가입 실패: ${detail}`);
     } else {
       alert('서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인하세요.');
     }
-    console.error('회원가입 실패:', error);
   } finally {
     loading.value = false;
   }
