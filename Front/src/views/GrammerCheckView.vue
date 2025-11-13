@@ -46,8 +46,8 @@
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 
-// 1. API 엔드포인트를 새로 만듭니다.
-const GRAMMAR_CHECK_ENDPOINT = '/api/analyze'
+// 문법 검사 백엔드 엔드포인트
+const GRAMMAR_CHECK_ENDPOINT = '/api/v1/grammar/check'
 
 const inputText = ref('');
 const isAnalyzing = ref(false);
@@ -70,18 +70,22 @@ const analyzeText = async () => {
   let analysisSuccess = false;
 
   try {
-    // 3. 'subject' 등 불필요한 payload 제거
-    const payload = { text: inputText.value };
-    
-    // 4. 새로운 엔드포인트로 요청
+    // 요청 페이로드: { content }
+    const payload = { content: inputText.value };
     const response = await axios.post(GRAMMAR_CHECK_ENDPOINT, payload);
 
-    // 5. Gemini가 반환한 텍스트(수정된 문장)를 파싱
-    // (백엔드가 /api/analyze와 동일한 Gemini 응답 형식을 준다고 가정)
-    const correctedString = response.data.candidates[0].content.parts[0].text.trim();
-
-    // 6. Vue 반응형 상태 업데이트
-    result.correctedText = correctedString;
+    // FastAPI 응답: { errors: [...], total_errors, corrected_text }
+    const data = response.data;
+    // corrected_text가 없으므로 errors를 사람이 읽을 수 있게 변환
+    if (data.corrected_text) {
+      result.correctedText = data.corrected_text;
+    } else if (Array.isArray(data.errors) && data.errors.length > 0) {
+      result.correctedText = data.errors
+        .map(e => `- [${e.error_type}] ${e.message} (범위: ${e.start_index}~${e.end_index})\n  제안: ${e.suggestions?.join(', ') || '-'}`)
+        .join('\n\n');
+    } else {
+      result.correctedText = '오류가 발견되지 않았습니다.';
+    }
 
     analysisSuccess = true; // 성공!
 

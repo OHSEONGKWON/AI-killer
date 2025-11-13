@@ -12,9 +12,15 @@
   <main>
     <section class="detection-area">
       <div class="container">
-        <h2>AI 표절 검사기</h2>
+        <h2>AI 텍스트 분석</h2>
         
         <div class="input-section">
+          <input 
+            v-model="title"
+            type="text"
+            placeholder="제목을 입력하세요 (예: 논문/에세이 제목)"
+            :disabled="isAnalyzing"
+          />
           <textarea 
             v-model="inputText" 
             placeholder="검사할 텍스트를 여기에 붙여넣으세요... (최소 50자 이상)"
@@ -26,7 +32,7 @@
               <button class="icon-btn" @click="clearText"><i class="fas fa-eraser"></i></button>
             </div>
           </div>
-          <button @click="analyzeText" class="btn-analyze" :disabled="isAnalyzing || inputText.length < 50">
+          <button @click="analyzeText" class="btn-analyze" :disabled="isAnalyzing || inputText.length < 10">
             {{ isAnalyzing ? '검사 중...' : '검사 시작' }}
           </button>
         </div>
@@ -38,17 +44,17 @@
         <div class="result-summary">
           <div class="result-box ai-score">
             <strong>AI 생성 확률</strong>
-            <span>{{ result.aiScore }}%</span>
+            <span>{{ result.aiProbability }}%</span>
           </div>
           <div class="result-box plagiarism-score">
-            <strong>표절 의심 비율</strong>
-            <span>{{ result.plagiarismScore }}%</span>
+            <strong>KoBERT 점수</strong>
+            <span>{{ result.kobertScore }}%</span>
           </div>
         </div>
         
         <div class="detailed-analysis">
           <h4>상세 분석</h4>
-          <p class="corrected-text">{{ result.summary }}</p>
+          <p class="corrected-text">AI 생성 확률과 KoBERT 점수는 백엔드 분석 결과를 기반으로 계산됩니다.</p>
         </div>
       </div>
     </section>
@@ -59,16 +65,17 @@
 import { ref } from 'vue';
 import axios from 'axios'; // axios 임포트
 
-// 1. 변수명/API 엔드포인트 통일
-const API_ENDPOINT = '/api/analyze'; // 표절 검사 API
+// 백엔드 분석 엔드포인트
+const API_ENDPOINT = '/api/v1/analyze';
+const title = ref('');
 const inputText = ref('');
 const isAnalyzing = ref(false); // isLoading -> isAnalyzing로 이름 변경
 const result = ref(null); // showResult 대신 result 객체로 v-if 처리
 
-// 2. 검사 시작 함수 (이전 axios 코드와 동일, 변수명만 변경)
+// 분석 시작 함수
 const analyzeText = async () => {
-  if (inputText.value.trim().length < 50) {
-    alert('최소 50자 이상 입력해주세요.');
+  if (inputText.value.trim().length < 10) {
+    alert('최소 10자 이상 입력해주세요.');
     return;
   }
 
@@ -76,12 +83,15 @@ const analyzeText = async () => {
   result.value = null; // 이전 결과 초기화
 
   try {
-    const payload = { text: inputText.value };
+    const payload = { title: title.value || 'Untitled', content: inputText.value };
     const response = await axios.post(API_ENDPOINT, payload);
 
-    // 백엔드가 { aiScore: 90, plagiarismScore: 10, summary: "..." } 형식으로
-    // 응답한다고 가정합니다.
-    result.value = response.data; 
+    // FastAPI 응답: { ai_probability: float, analysis_details: { kobert_score, similarity_score } }
+    const data = response.data;
+    result.value = {
+      aiProbability: Math.round((data.ai_probability || 0) * 100),
+      kobertScore: Math.round(((data.analysis_details?.kobert_score) || 0) * 100),
+    };
 
   } catch (error) {
     console.error('API 호출 중 오류 발생:', error);
@@ -91,7 +101,7 @@ const analyzeText = async () => {
   }
 };
 
-// 3. 문법 검사기에 있던 clearText 함수 추가
+// 입력 초기화
 const clearText = () => {
   inputText.value = '';
   result.value = null;
