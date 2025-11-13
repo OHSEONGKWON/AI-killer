@@ -5,6 +5,7 @@
 - pydantic-settings로 .env 값을 읽어 Settings 객체를 구성합니다.
 """
 
+from pathlib import Path
 from pydantic_settings import BaseSettings
 
 
@@ -18,15 +19,27 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str | None = None
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    FRONTEND_URL: str = "http://localhost:8080"
+    
+    # OpenAI API 설정 (선택사항)
+    OPENAI_API_KEY: str | None = None
 
     # 외부 API 설정 (선택사항)
     PLAGIARISM_API_URL: str | None = None
     PLAGIARISM_API_KEY: str | None = None
     GRAMMAR_API_URL: str | None = None
     GRAMMAR_API_KEY: str | None = None
+    
+    # 로깅 설정 (선택사항)
+    LOG_LEVEL: str = "INFO"
+    JSON_LOGS: str = "0"
+    ENVIRONMENT: str = "development"
 
     class Config:
-        env_file = ".env"  # .env 파일에서 환경변수를 읽어옴
+        # .env 파일 경로를 프로젝트 루트로 지정
+        env_file = Path(__file__).parent.parent.parent / ".env"
+        env_file_encoding = 'utf-8'
+        case_sensitive = True
 
 
 # 전역 settings 인스턴스 (import하여 사용)

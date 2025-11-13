@@ -21,8 +21,10 @@ def verify_password(plain_password, hashed_password):
 
 
 def get_password_hash(password):
-    """비밀번호 해시를 생성합니다."""
-    return pwd_context.hash(password)
+    """비밀번호 해시를 생성합니다. bcrypt는 최대 72바이트까지 지원."""
+    # bcrypt는 72바이트 제한이 있으므로 자동으로 잘라줌
+    truncated_password = password[:72]
+    return pwd_context.hash(truncated_password)
 
 
 def create_access_token(data: dict):

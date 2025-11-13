@@ -42,27 +42,104 @@ const logout = () => {
 </script>
 
 <style>
-/* 기존 #app, body, header 등의 스타일은 그대로 둡니다. */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Noto Sans KR', 'Pretendard', sans-serif;
+  background-color: #F8F9FA;
+}
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
 }
-/* ... (기존 스타일 생략) ... */
 
+/* 헤더 스타일 */
+header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #E0E0E0;
+  padding: 20px 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
 
-/* ▼▼▼ 이 CSS가 사이드바와 메인 영역을 나란히 배치합니다! ▼▼▼ */
+header .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-size: 2em;
+  color: #00C4CC;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 25px;
+  align-items: center;
+}
+
+nav a {
+  text-decoration: none;
+  color: #6C757D;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+nav a:hover {
+  color: #0056b3;
+}
+
+.btn-primary {
+  background-color: #00C4CC;
+  color: #FFFFFF;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: bold;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: #009999;
+}
+
+.btn-secondary {
+  background-color: #6C757D;
+  color: #FFFFFF;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+/* 메인 레이아웃 */
 .main-layout {
-  display: flex; /* 자식 요소(Sidebar, main)를 가로로 나란히 배치 */
-  /* 전체 화면 높이에서 헤더 높이(약 81px)를 뺀 만큼을 차지하도록 설정 */
+  display: flex;
   height: calc(100vh - 81px);
 }
 
 main {
-  flex-grow: 1; /* main 영역이 사이드바를 제외한 남은 공간을 모두 차지하도록 설정 */
+  flex-grow: 1;
   padding: 40px;
-  overflow-y: auto; /* 내용이 길어지면 main 영역만 스크롤되도록 설정 */
+  overflow-y: auto;
+  background-color: #F8F9FA;
 }
-
 </style>

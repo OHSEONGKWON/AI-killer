@@ -67,12 +67,11 @@
 import { ref, reactive } from 'vue';
 import axios from 'axios';
 
-const PROXY_ENDPOINT = '/api/analyze'
-
 const inputText = ref('');
 const isAnalyzing = ref(false);
 const showResult = ref(false);
 const subjectText = ref('');
+const selectedDocType = ref('');
 
 const result = reactive({
   isAIDetected: false,
@@ -81,59 +80,61 @@ const result = reactive({
 });
 
 const analyzeText = async () => {
-  if (inputText.value.trim() === '') {
-    alert('분석할 텍스트를 입력해주세요.');
+  if (inputText.value.trim() === '' || !selectedDocType.value) {
+    alert('분석할 텍스트와 문서 유형을 입력해주세요.');
     return;
   }
 
   isAnalyzing.value = true;
-  showResult.value = false; 
-
-  let analysisSuccess = false; // 분석 성공 여부를 추적할 변수
+  showResult.value = false;
 
   try {
-    const payload = { text: inputText.value, subject: subjectText.value, promptType: 'json_reasoning' };
-    const response = await axios.post(PROXY_ENDPOINT, payload);
+    const payload = {
+      title: subjectText.value || '제목 없음',
+      content: inputText.value,
+      text_type: selectedDocType.value
+    };
+    
+    const response = await axios.post('/api/v1/analyze', payload);
+    const data = response.data;
 
-    //  API 응답 데이터 처리
-    const responseText = response.data.candidates[0].content.parts[0].text.trim();
-    let likelihoodValue = parseInt(responseText);
+    // AI 확률을 백분율로 변환
+    const likelihoodValue = Math.round(data.ai_probability * 100);
+    const isDetected = likelihoodValue > 60;
 
-    if (isNaN(likelihoodValue) || likelihoodValue < 0 || likelihoodValue > 100) {
-      likelihoodValue = 50;
-    }
-
-    const isDetected = likelihoodValue > 60; // 60%를 기준으로 AI 여부를 결정
-
- 
     result.isAIDetected = isDetected;
     result.likelihood = likelihoodValue;
 
     if (isDetected) {
-      result.detailedText = '<span class="highlight-ai">높은 AI 생성 가능성이 감지되었습니다.</span> 이 텍스트는 반복적이거나 예측 가능한 패턴을 가질 수 있습니다.';
+      result.detailedText = `<span class="highlight-ai">높은 AI 생성 가능성이 감지되었습니다.</span><br><br>
+        <strong>세부 점수:</strong><br>
+        - KoBERT: ${Math.round(data.analysis_details.kobert_score * 100)}%<br>
+        - SBERT 유사도: ${Math.round(data.analysis_details.similarity_score * 100)}%<br>
+        - Perplexity: ${Math.round(data.analysis_details.perplexity_score * 100)}%<br>
+        - Burstiness: ${Math.round(data.analysis_details.burstiness_score * 100)}%`;
     } else {
-      result.detailedText = '<span class="highlight-human">AI보다는 인간이 작성했을 가능성이 높습니다.</span> 다양하고 창의적인 표현이 돋보입니다.';
+      result.detailedText = `<span class="highlight-human">AI보다는 인간이 작성했을 가능성이 높습니다.</span><br><br>
+        <strong>세부 점수:</strong><br>
+        - KoBERT: ${Math.round(data.analysis_details.kobert_score * 100)}%<br>
+        - SBERT 유사도: ${Math.round(data.analysis_details.similarity_score * 100)}%<br>
+        - Perplexity: ${Math.round(data.analysis_details.perplexity_score * 100)}%<br>
+        - Burstiness: ${Math.round(data.analysis_details.burstiness_score * 100)}%`;
     }
 
-    analysisSuccess = true; 
+    showResult.value = true;
   } catch (error) {
-    // 오류 처리
     console.error('API 호출 중 오류 발생:', error);
-
-    // 오류 유형별 메시지
-    let errorMessage = '텍스트 분석에 실패했습니다. (API 오류)';
-    if (error.response && error.response.status === 403) {
-      errorMessage = 'API 키가 유효하지 않거나 사용 권한이 없습니다. (403 Forbidden)';
-    } else if (error.response && error.response.status === 429) {
-      errorMessage = '사용 한도를 초과했습니다. 잠시 후 다시 시도해주세요. (429 Rate Limit)';
+    let errorMessage = '텍스트 분석에 실패했습니다.';
+    
+    if (error.response) {
+      errorMessage += ` (오류: ${error.response.data.detail || error.response.statusText})`;
+    } else {
+      errorMessage += ' 백엔드 서버에 연결할 수 없습니다.';
     }
-
+    
     alert(errorMessage);
-
-    analysisSuccess = false; // 실패
   } finally {
     isAnalyzing.value = false;
-    showResult.value = analysisSuccess;
   }
 };
 

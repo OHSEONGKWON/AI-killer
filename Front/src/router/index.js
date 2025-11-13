@@ -5,11 +5,17 @@ import Login from '../views/Login.vue';
 import MyPageView from '../views/MyPageView.vue';
 import AiDetectorView from '../views/AiDetectorView.vue';
 import GrammerCheckView from '../views/GrammerCheckView.vue';
+import AuthCallback from '../views/AuthCallback.vue';
 const routes = [
   {
     path: '/',
     name: 'home',
     component: HomeView
+  },
+  {
+    path: '/auth/callback',
+    name: 'auth-callback',
+    component: AuthCallback
   },
   {
     path: '/signup',

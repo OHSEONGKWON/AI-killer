@@ -25,20 +25,20 @@ async def get_user(db: AsyncSession, user_id: int):
 async def get_user_by_username(db: AsyncSession, username: str):
     """username 인덱스를 활용해 사용자 한 명을 조회합니다."""
     statement = select(models.User).where(models.User.username == username)
-    result = await db.exec(statement)
-    return result.first()
+    result = await db.execute(statement)
+    return result.scalars().first()
     
 async def get_user_by_kakao_id(db: AsyncSession, kakao_id: int):
     """카카오 ID로 사용자 조회."""
     statement = select(models.User).where(models.User.kakao_id == kakao_id)
-    result = await db.exec(statement)
-    return result.first()
+    result = await db.execute(statement)
+    return result.scalars().first()
 
 async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[models.User]:
     """전체 사용자 목록을 페이지네이션하여 가져옵니다."""
     statement = select(models.User).offset(skip).limit(limit)
-    result = await db.exec(statement)
-    return result.all()
+    result = await db.execute(statement)
+    return list(result.scalars().all())
 
 async def create_kakao_user(db: AsyncSession, user_info: dict) -> models.User:
     """카카오에서 받은 간단한 user_info로 사용자 생성.
@@ -97,8 +97,8 @@ async def get_analysis_config(db: AsyncSession, text_type: str) -> Optional[mode
         models.AnalysisConfig.text_type == text_type,
         models.AnalysisConfig.is_active == True
     )
-    result = await db.exec(statement)
-    return result.first()
+    result = await db.execute(statement)
+    return result.scalars().first()
 
 
 async def get_default_analysis_config(db: AsyncSession) -> Optional[models.AnalysisConfig]:
@@ -107,15 +107,15 @@ async def get_default_analysis_config(db: AsyncSession) -> Optional[models.Analy
         models.AnalysisConfig.is_default == True,
         models.AnalysisConfig.is_active == True
     )
-    result = await db.exec(statement)
-    return result.first()
+    result = await db.execute(statement)
+    return result.scalars().first()
 
 
 async def get_all_analysis_configs(db: AsyncSession) -> List[models.AnalysisConfig]:
     """모든 분석 설정을 조회합니다."""
     statement = select(models.AnalysisConfig)
-    result = await db.exec(statement)
-    return result.all()
+    result = await db.execute(statement)
+    return list(result.scalars().all())
 
 
 async def create_analysis_config(
@@ -137,8 +137,8 @@ async def update_analysis_config(
 ) -> Optional[models.AnalysisConfig]:
     """분석 설정을 수정합니다."""
     statement = select(models.AnalysisConfig).where(models.AnalysisConfig.text_type == text_type)
-    result = await db.exec(statement)
-    db_config = result.first()
+    result = await db.execute(statement)
+    db_config = result.scalars().first()
     
     if not db_config:
         return None
@@ -156,8 +156,8 @@ async def update_analysis_config(
 async def delete_analysis_config(db: AsyncSession, text_type: str) -> bool:
     """분석 설정을 삭제합니다."""
     statement = select(models.AnalysisConfig).where(models.AnalysisConfig.text_type == text_type)
-    result = await db.exec(statement)
-    config = result.first()
+    result = await db.execute(statement)
+    config = result.scalars().first()
     
     if config:
         await db.delete(config)

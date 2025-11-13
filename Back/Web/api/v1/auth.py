@@ -7,19 +7,19 @@
 - JWT 토큰 발급 및 검증
 """
 
-import os
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Form
 from fastapi.responses import RedirectResponse
 import httpx
 
 from ...dependencies import get_db, get_current_user
 from ... import models, security, crud
+from ...config import settings
 
 router = APIRouter()
 
-# 환경변수에서 카카오 설정 읽기
-KAKAO_REST_API_KEY = os.getenv("KAKAO_REST_API_KEY")
-KAKAO_REDIRECT_URI = os.getenv("KAKAO_REDIRECT_URI", "http://localhost:8000/api/v1/auth/kakao/callback")
+# settings에서 카카오 설정 읽기
+KAKAO_REST_API_KEY = settings.KAKAO_REST_API_KEY
+KAKAO_REDIRECT_URI = settings.KAKAO_REDIRECT_URI or "http://localhost:8000/api/v1/auth/kakao/callback"
 
 
 @router.get("/auth/kakao", summary="카카오 로그인 시작")
@@ -133,7 +133,7 @@ async def kakao_callback(code: str, db=Depends(get_db)):
             
             # 6. 프론트엔드로 리다이렉트 (토큰 전달)
             # Vue 프론트엔드 주소로 리다이렉트 (토큰을 쿼리 파라미터로 전달)
-            frontend_url = os.getenv("FRONTEND_URL", "http://localhost:8080")
+            frontend_url = settings.FRONTEND_URL
             redirect_url = f"{frontend_url}/auth/callback?token={access_token}"
             
             return RedirectResponse(url=redirect_url)
@@ -161,39 +161,51 @@ async def register(user_create: models.UserCreate, db=Depends(get_db)):
     Returns:
         생성된 사용자 정보
     """
-    # 중복 체크
-    existing_user = await crud.get_user_by_username(db, username=user_create.username)
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="이미 존재하는 사용자명입니다."
+    try:
+        # 중복 체크
+        existing_user = await crud.get_user_by_username(db, username=user_create.username)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="이미 존재하는 사용자명입니다."
+            )
+        
+        # 비밀번호 해시화
+        hashed_password = security.get_password_hash(user_create.password)
+        
+        # 사용자 생성
+        db_user = models.User(
+            username=user_create.username,
+            email=user_create.email,
+            hashed_password=hashed_password,
+            is_admin=False
         )
-    
-    # 비밀번호 해시화
-    hashed_password = security.get_password_hash(user_create.password)
-    
-    # 사용자 생성
-    db_user = models.User(
-        username=user_create.username,
-        email=user_create.email,
-        hashed_password=hashed_password,
-        is_admin=False
-    )
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
-    
-    return db_user
+        db.add(db_user)
+        await db.commit()
+        await db.refresh(db_user)
+        
+        return db_user
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        print(f"회원가입 오류: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"회원가입 중 오류가 발생했습니다: {str(e)}"
+        )
 
 
 @router.post("/auth/login", response_model=models.Token, summary="로그인")
-async def login(username: str, password: str, db=Depends(get_db)):
+async def login(username: str = Form(...), password: str = Form(...), db=Depends(get_db)):
     """
     일반 로그인 (이메일/비밀번호 방식)
     
     Args:
-        username: 사용자명
-        password: 비밀번호
+        username: 사용자명 (Form 데이터)
+        password: 비밀번호 (Form 데이터)
     
     Returns:
         JWT 액세스 토큰

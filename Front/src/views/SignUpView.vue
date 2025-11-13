@@ -7,8 +7,8 @@
         <input type="email" id="email" v-model="email" placeholder="이메일을 입력하세요" required>
       </div>
       <div class="form-group">
-        <label for="password">비밀번호</label>
-        <input type="password" id="password" v-model="password" placeholder="비밀번호를 입력하세요" required>
+        <label for="password">비밀번호 (6~50자)</label>
+        <input type="password" id="password" v-model="password" placeholder="비밀번호를 입력하세요" required minlength="6" maxlength="50">
       </div>
       <div class="form-group">
         <label for="password-confirm">비밀번호 확인</label>
@@ -30,23 +30,35 @@ const passwordConfirm = ref('');
 const router = useRouter();
 
 const submitForm = async () => {
+  if (password.value.length < 6) {
+    alert('비밀번호는 최소 6자 이상이어야 합니다.');
+    return;
+  }
+  
+  if (password.value.length > 72) {
+    alert('비밀번호는 최대 72자까지 가능합니다.');
+    return;
+  }
+  
   if (password.value !== passwordConfirm.value) {
     alert('비밀번호가 일치하지 않습니다.');
     return;
   }
 
   try {
-    const response = await axios.post('http://localhost:3000/api/register', {
+    const response = await axios.post('/api/v1/auth/register', {
+      username: email.value.split('@')[0], // 이메일의 @ 앞부분을 username으로 사용
       email: email.value,
       password: password.value,
     });
 
     alert('회원가입에 성공했습니다!');
-    router.push('/'); 
+    router.push('/login'); 
 
   } catch (error) {
     if (error.response) {
-      alert(`회원가입 실패: ${error.response.data.error}`);
+      const detail = error.response.data.detail || '회원가입 실패';
+      alert(`회원가입 실패: ${detail}`);
     } else {
       alert('서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인하세요.');
     }

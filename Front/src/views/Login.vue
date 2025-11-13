@@ -44,32 +44,36 @@ const router = useRouter();
 
 const submitLogin = async () => {
   try {
-    const response = await axios.post('http://localhost:3001/api/login', {
-      email: email.value,
-      password: password.value,
+    // FormData를 사용하여 username과 password를 전송
+    const formData = new FormData();
+    formData.append('username', email.value);
+    formData.append('password', password.value);
+
+    const response = await axios.post('/api/v1/auth/login', formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
     });
 
-    // auth.setUser(response.data.user); // 스토어 사용 시
-    localStorage.setItem('user-token', response.data.token); // JWT 토큰 저장
+    // JWT 토큰 저장
+    localStorage.setItem('access_token', response.data.access_token);
     
     alert('로그인에 성공했습니다!');
     router.push('/'); 
 
   } catch (error) {
     if (error.response) {
-      alert(`로그인 실패: ${error.response.data.error}`);
+      alert(`로그인 실패: ${error.response.data.detail || '인증 정보를 확인해주세요.'}`);
     } else {
-      alert('서버에 연결할 수 없습니다. 백엔드 서버가 3001 포트에서 켜져 있는지 확인해주세요.');
+      alert('서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.');
     }
   }
 };
 
 const loginWithKakao = () => {
-  const REST_API_KEY = '1a55fcb0d7c0b0bcbc72c07696d05038'; // 👈 여기에 키 입력
-  const REDIRECT_URI = ''; // 👈 여기에 리디렉션 URI 입력
-  const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${REST_API_KEY}&redirect_uri=${REDIRECT_URI}&response_type=code`;
-  
-  window.location.href = kakaoAuthUrl;
+  // 백엔드의 카카오 로그인 엔드포인트로 이동
+  // 백엔드가 자동으로 카카오 로그인 페이지로 리다이렉트함
+  window.location.href = '/api/v1/auth/kakao';
 };
 </script>
 

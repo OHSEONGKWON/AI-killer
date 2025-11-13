@@ -32,7 +32,9 @@ app = FastAPI(title="블로그/에세이 AI 작성 검증 API")
 # 프론트 개발 서버 주소를 여기 배열에 추가하면 됩니다.
 origins = [
     "http://localhost:8080",     # Vue 개발 서버 기본 주소
-    "http://172.16.1.219:8080"
+    "http://localhost:8081",     # Vue 개발 서버 대체 포트
+    "http://172.16.1.219:8080",
+    "http://172.20.10.2:8081"    # 네트워크 주소
 ]
 
 app.add_middleware(
