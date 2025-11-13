@@ -23,13 +23,28 @@ import httpx
 from openai import AsyncOpenAI, OpenAIError, APIError, APITimeoutError, RateLimitError, AuthenticationError
 
 
-# OpenAI 클라이언트 초기화
-# API 키는 환경변수에서 읽음 (config.py의 settings를 사용해도 됨)
-client = AsyncOpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"),
-    timeout=httpx.Timeout(30.0, connect=5.0),  # 전체 30초, 연결 5초 타임아웃
-    max_retries=3,  # 자동 재시도 3회 (OpenAI SDK 내장)
-)
+# OpenAI 클라이언트 지연 초기화 (API 키 없으면 서버는 정상 기동, 호출 시에만 필요)
+_client: Optional[AsyncOpenAI] = None
+
+def get_client() -> AsyncOpenAI:
+    """OPENAI_API_KEY가 있을 때만 클라이언트를 초기화하여 반환합니다.
+
+    Raises:
+        ValueError: OPENAI_API_KEY 미설정 시
+    """
+    global _client
+    if _client is None:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "OPENAI_API_KEY 환경변수가 설정되지 않았습니다. .env 파일에 OPENAI_API_KEY를 추가하세요."
+            )
+        _client = AsyncOpenAI(
+            api_key=api_key,
+            timeout=httpx.Timeout(30.0, connect=5.0),  # 전체 30초, 연결 5초 타임아웃
+            max_retries=3,  # 자동 재시도 3회 (OpenAI SDK 내장)
+        )
+    return _client
 
 
 async def generate_text_completion(
@@ -55,11 +70,13 @@ async def generate_text_completion(
         ValueError: API 키가 설정되지 않았을 때
         OpenAIError: OpenAI API 호출 실패 시
     """
-    if not client.api_key:
+    try:
+        client = get_client()
+    except ValueError as e:
+        # 키가 없을 때는 명시적으로 안내
         raise ValueError(
-            "OPENAI_API_KEY 환경변수가 설정되지 않았습니다. "
-            ".env 파일에 OPENAI_API_KEY를 추가하세요."
-        )
+            "OPENAI_API_KEY 환경변수가 설정되지 않았습니다. .env 파일에 OPENAI_API_KEY를 추가하세요."
+        ) from e
     
     try:
         response = await client.chat.completions.create(
@@ -124,11 +141,12 @@ async def generate_multiple_completions(
         ValueError: API 키가 설정되지 않았을 때
         OpenAIError: OpenAI API 호출 실패 시
     """
-    if not client.api_key:
+    try:
+        client = get_client()
+    except ValueError as e:
         raise ValueError(
-            "OPENAI_API_KEY 환경변수가 설정되지 않았습니다. "
-            ".env 파일에 OPENAI_API_KEY를 추가하세요."
-        )
+            "OPENAI_API_KEY 환경변수가 설정되지 않았습니다. .env 파일에 OPENAI_API_KEY를 추가하세요."
+        ) from e
     
     try:
         response = await client.chat.completions.create(
@@ -164,28 +182,45 @@ async def generate_multiple_completions(
         raise OpenAIError(f"OpenAI API 호출 실패: {e}")
 
 
-async def generate_ai_abstracts(title: str, n: int = 3) -> List[str]:
-    """논문 제목을 받아 AI가 생성한 초록 샘플들을 반환합니다.
-    
-    이 함수는 기존 analysis.py의 generate_ai_content를 대체합니다.
-    
+async def generate_ai_abstracts(
+    title: Optional[str] = None,
+    n: int = 3,
+    *,
+    prompt: Optional[str] = None,
+    num_samples: Optional[int] = None,
+) -> List[str]:
+    """AI가 생성한 비교용 초록 샘플들을 반환합니다.
+
+    analysis.py 호환을 위해 title/prompt, n/num_samples 모두 지원합니다.
+    OPENAI_API_KEY가 없을 경우, 간단한 더미 샘플을 반환하여 서버가 정상 동작하도록 합니다.
+
     Args:
-        title: 논문 제목
-        n: 생성할 초록 개수 (기본값: 3)
-    
+        title: 주제/제목 텍스트
+        n: 생성 개수
+        prompt: (대안) 프롬프트 텍스트
+        num_samples: (대안) 생성 개수
+
     Returns:
-        생성된 초록 리스트 (List[str])
-    
-    Raises:
-        ValueError: API 키가 설정되지 않았을 때
-        OpenAIError: OpenAI API 호출 실패 시
+        생성된 초록 문자열 리스트
     """
-    prompt = f"다음 제목의 논문에 대한 초록을 200자 내외로 작성해주세요: {title}"
-    
+    content = prompt or title or "입력 텍스트"
+    count = num_samples or n or 3
+
+    # 키가 없으면 더미 샘플을 반환 (OpenAI 호출 생략)
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return [
+            f"[샘플 1] {content[:50]} ... 에 대한 AI 초록 예시",
+            f"[샘플 2] {content[:50]} ... 관련 요약 샘플",
+            f"[샘플 3] {content[:50]} ... 비교용 텍스트",
+        ][:count]
+
+    # 키가 있으면 실제 OpenAI 호출
+    combined_prompt = f"다음 내용의 텍스트와 유사한 한국어 초록을 200자 내외로 작성해주세요: {content}"
     return await generate_multiple_completions(
-        prompt=prompt,
-        n=n,
+        prompt=combined_prompt,
+        n=count,
         max_tokens=200,
-        temperature=0.8,  # 다양성을 위해 조금 높게 설정
+        temperature=0.8,
         system_message="당신은 한국어 논문 초록을 작성하는 전문 AI입니다.",
     )
