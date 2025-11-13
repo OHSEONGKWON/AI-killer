@@ -162,12 +162,19 @@ async def register(user_create: models.UserCreate, db=Depends(get_db)):
         생성된 사용자 정보
     """
     try:
-        # 중복 체크
+        # 중복 체크 (username과 email 모두)
         existing_user = await crud.get_user_by_username(db, username=user_create.username)
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="이미 존재하는 사용자명입니다."
+            )
+        
+        existing_email = await crud.get_user_by_email(db, email=user_create.email)
+        if existing_email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="이미 등록된 이메일입니다."
             )
         
         # 비밀번호 해시화

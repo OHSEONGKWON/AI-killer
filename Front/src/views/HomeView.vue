@@ -65,7 +65,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue';
-import axios from 'axios';
+import { analysisAPI } from '../services/api';
 
 const inputText = ref('');
 const isAnalyzing = ref(false);
@@ -95,7 +95,7 @@ const analyzeText = async () => {
       text_type: selectedDocType.value
     };
     
-    const response = await axios.post('/api/v1/analyze', payload);
+    const response = await analysisAPI.analyze(payload);
     const data = response.data;
 
     // AI 확률을 백분율로 변환

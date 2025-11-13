@@ -19,8 +19,9 @@ from sqlmodel import SQLModel
 from .database import engine
 from .api.v1 import router as api_v1_router
 from .logging_config import setup_logging, get_logger
+from .config import validate_required_settings
 
-# 로깅 초기화 (환경변수 LOG_LEVEL, JSON_LOGS, SENTRY_DSN 사용)
+# 로그5 초기화 (환경변수 LOG_LEVEL, JSON_LOGS, SENTRY_DSN 사용)
 setup_logging()
 logger = get_logger(__name__)
 from .analysis_models import AnalysisRecord  # DB 테이블 등록
@@ -51,6 +52,13 @@ app.add_middleware(
 async def on_startup():
     """애플리케이션 시작 시 초기화 작업."""
     logger.info("서버 시작 중...", extra={"app_title": app.title})
+    
+    # 환경 변수 검증
+    warnings = validate_required_settings()
+    if warnings:
+        logger.warning("환경 변수 경고:")
+        for warning in warnings:
+            logger.warning(f"  {warning}")
     
     # 비동기 엔진 컨텍스트에서 메타데이터 기반 테이블 생성
     async with engine.begin() as conn:

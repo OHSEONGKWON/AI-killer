@@ -12,9 +12,9 @@ from sqlmodel import Field, SQLModel
 # --- 분석 API 모델 ---
 class AnalysisRequest(SQLModel):
     """분석 요청 바디: 제목, 본문 텍스트, 텍스트 유형."""
-    title: str
-    content: str  # 블로그/에세이 본문
-    text_type: Optional[str] = "paper"  # paper, essay, blog 등
+    title: str = Field(max_length=200, description="제목")
+    content: str = Field(min_length=10, max_length=10000, description="분석할 텍스트 (10~10000자)")
+    text_type: Optional[str] = Field(default="paper", description="텍스트 유형 (paper, essay, blog, article, news 등)")
 
 class AnalysisDetails(SQLModel):
     """세부 점수: 4가지 AI 검출 지표."""
@@ -36,7 +36,7 @@ class UserBase(SQLModel):
 
 class UserCreate(UserBase):
     """회원가입 시 사용하는 바디 모델(패스워드 포함)."""
-    password: str
+    password: str = Field(min_length=6, max_length=50, description="비밀번호 (6~50자)")
 
 class UserResponse(UserBase):
     """클라이언트에 반환할 유저 정보 스키마."""

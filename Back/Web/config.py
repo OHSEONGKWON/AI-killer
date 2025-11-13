@@ -44,3 +44,22 @@ class Settings(BaseSettings):
 
 # 전역 settings 인스턴스 (import하여 사용)
 settings = Settings()
+
+
+def validate_required_settings():
+    """필수 환경 변수 검증.
+    
+    서버 시작 시 호출하여 필수 설정 누락을 조기에 발견합니다.
+    """
+    warnings = []
+    
+    if not settings.JWT_SECRET_KEY:
+        warnings.append("⚠️  JWT_SECRET_KEY가 설정되지 않았습니다. 로그인 기능이 동작하지 않습니다!")
+    
+    if not settings.KAKAO_REST_API_KEY:
+        warnings.append("🟡 KAKAO_REST_API_KEY가 설정되지 않았습니다. 카카오 로그인을 사용할 수 없습니다.")
+    
+    if not settings.OPENAI_API_KEY:
+        warnings.append("🟡 OPENAI_API_KEY가 설정되지 않았습니다. AI 분석 기능이 더미 데이터를 사용합니다.")
+    
+    return warnings

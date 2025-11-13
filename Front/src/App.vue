@@ -4,11 +4,12 @@
       <router-link to="/" class="logo">Tech up</router-link>
       <nav>
         <ul>
-          <template v-if="!auth.user.isLoggedIn">
+          <template v-if="!auth.state.isLoggedIn">
             <li><router-link to="/login">로그인</router-link></li>
             <li><router-link to="/signup" class="btn-primary">회원가입</router-link></li>
           </template>
           <template v-else>
+            <li><span class="user-name">{{ auth.state.user?.username || '사용자' }}님</span></li>
             <li><router-link to="/mypage">마이페이지</router-link></li>
             <li><button @click="logout" class="btn-secondary">로그아웃</button></li>
           </template>
@@ -27,12 +28,17 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue';
 import auth from './store/auth.js';
 import { useRouter } from 'vue-router';
-// 3. Sidebar.vue를 스크립트에서 import 해야 합니다.
 import Sidebar from './components/Sidebar.vue';
 
 const router = useRouter();
+
+// 앱 시작 시 인증 상태 초기화
+onMounted(() => {
+  auth.initAuth();
+});
 
 const logout = () => {
   auth.clearUser();
@@ -100,6 +106,12 @@ nav a {
 
 nav a:hover {
   color: #0056b3;
+}
+
+.user-name {
+  color: #00C4CC;
+  font-weight: 600;
+  padding: 0 10px;
 }
 
 .btn-primary {

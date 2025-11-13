@@ -12,6 +12,16 @@ from ... import models, crud
 router = APIRouter()
 
 
+@router.get("/users/me", response_model=models.UserResponse, summary="내 정보 조회")
+async def get_me(current_user: models.User = Depends(get_current_user)):
+    """현재 로그인된 사용자의 정보를 반환합니다.
+    
+    - 인증은 get_current_user 의존성으로 확인됩니다.
+    - JWT 토큰이 유효하면 사용자 정보를 반환합니다.
+    """
+    return current_user
+
+
 @router.delete("/users/me", summary="내 계정 삭제")
 async def delete_me(db=Depends(get_db), current_user: models.User = Depends(get_current_user)):
     """현재 로그인된 사용자 계정을 삭제합니다.

@@ -12,7 +12,9 @@
         <input v-model="password" id="password" type="password" placeholder="비밀번호" />
       </div>
       
-      <button @click="submitLogin" class="btn btn-login">로그인</button>
+      <button @click="submitLogin" class="btn btn-login" :disabled="loading">
+        {{ loading ? '로그인 중...' : '로그인' }}
+      </button>
 
       <div class="divider">
         <span>또는</span>
@@ -34,29 +36,30 @@
 
 <script setup>
 import { ref } from 'vue';
-import axios from 'axios';
 import { useRouter } from 'vue-router';
-// import auth from '../store/auth.js'; // auth 스토어 경로는 확인 필요
+import { authAPI } from '../services/api';
+import auth from '../store/auth.js';
 
 const email = ref('');
 const password = ref('');
+const loading = ref(false);
 const router = useRouter();
 
 const submitLogin = async () => {
-  try {
-    // FormData를 사용하여 username과 password를 전송
-    const formData = new FormData();
-    formData.append('username', email.value);
-    formData.append('password', password.value);
+  if (!email.value || !password.value) {
+    alert('이메일과 비밀번호를 입력해주세요.');
+    return;
+  }
 
-    const response = await axios.post('/api/v1/auth/login', formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    });
+  loading.value = true;
+  try {
+    const response = await authAPI.login(email.value, password.value);
 
     // JWT 토큰 저장
     localStorage.setItem('access_token', response.data.access_token);
+    
+    // 사용자 정보 로드
+    await auth.initAuth();
     
     alert('로그인에 성공했습니다!');
     router.push('/'); 
@@ -67,6 +70,8 @@ const submitLogin = async () => {
     } else {
       alert('서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인해주세요.');
     }
+  } finally {
+    loading.value = false;
   }
 };
 

@@ -27,6 +27,12 @@ async def get_user_by_username(db: AsyncSession, username: str):
     statement = select(models.User).where(models.User.username == username)
     result = await db.execute(statement)
     return result.scalars().first()
+
+async def get_user_by_email(db: AsyncSession, email: str):
+    """email로 사용자 한 명을 조회합니다."""
+    statement = select(models.User).where(models.User.email == email)
+    result = await db.execute(statement)
+    return result.scalars().first()
     
 async def get_user_by_kakao_id(db: AsyncSession, kakao_id: int):
     """카카오 ID로 사용자 조회."""

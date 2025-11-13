@@ -14,29 +14,38 @@
         <label for="password-confirm">비밀번호 확인</label>
         <input type="password" id="password-confirm" v-model="passwordConfirm" placeholder="비밀번호를 다시 입력하세요" required>
       </div>
-      <button type="submit" class="btn-primary">가입하기</button>
+      <button type="submit" class="btn-primary" :disabled="loading">
+        {{ loading ? '처리 중...' : '가입하기' }}
+      </button>
     </form>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import axios from 'axios';
 import { useRouter } from 'vue-router';
+import { authAPI } from '../services/api';
 
 const email = ref('');
 const password = ref('');
 const passwordConfirm = ref('');
+const loading = ref(false);
 const router = useRouter();
 
 const submitForm = async () => {
+  // 유효성 검사
+  if (!email.value || !password.value || !passwordConfirm.value) {
+    alert('모든 필드를 입력해주세요.');
+    return;
+  }
+
   if (password.value.length < 6) {
     alert('비밀번호는 최소 6자 이상이어야 합니다.');
     return;
   }
   
-  if (password.value.length > 72) {
-    alert('비밀번호는 최대 72자까지 가능합니다.');
+  if (password.value.length > 50) {
+    alert('비밀번호는 최대 50자까지 가능합니다.');
     return;
   }
   
@@ -45,8 +54,9 @@ const submitForm = async () => {
     return;
   }
 
+  loading.value = true;
   try {
-    const response = await axios.post('/api/v1/auth/register', {
+    await authAPI.register({
       username: email.value.split('@')[0], // 이메일의 @ 앞부분을 username으로 사용
       email: email.value,
       password: password.value,
@@ -63,6 +73,8 @@ const submitForm = async () => {
       alert('서버에 연결할 수 없습니다. 백엔드 서버가 실행 중인지 확인하세요.');
     }
     console.error('회원가입 실패:', error);
+  } finally {
+    loading.value = false;
   }
 };
 </script>
