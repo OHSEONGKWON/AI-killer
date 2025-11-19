@@ -4,7 +4,7 @@ Write-Host "Starting Backend Server..." -ForegroundColor Green
 $backendJob = Start-Job -ScriptBlock {
     $ErrorActionPreference = "Continue"
     Push-Location C:\GitHub\AI-killer\Back
-    & C:\GitHub\AI-killer\.venv\Scripts\python.exe -m uvicorn Web.main:app --reload --host 0.0.0.0 --port 8000
+    & C:\GitHub\AI-killer\.venv\Scripts\python.exe -m uvicorn Web.main:app --reload --host 127.0.0.1 --port 8001
 }
 
 Write-Host "Starting Frontend Server..." -ForegroundColor Green
@@ -34,4 +34,4 @@ Receive-Job -Id $frontendJob.Id -Keep | Select-Object -Last 10
 
 Write-Host "`nServers are running. Access at:" -ForegroundColor Cyan
 Write-Host "  Frontend: http://localhost:8080" -ForegroundColor Yellow
-Write-Host "  Backend:  http://localhost:8000/docs" -ForegroundColor Yellow
+Write-Host "  Backend:  http://localhost:8001/docs" -ForegroundColor Yellow

@@ -6,7 +6,7 @@ module.exports = defineConfig({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',  // 로컬 FastAPI 백엔드
+        target: 'http://127.0.0.1:8001',  // 로컬 FastAPI 백엔드
         changeOrigin: true,
         secure: false
       }

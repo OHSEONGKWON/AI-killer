@@ -24,18 +24,24 @@ sys.path.insert(0, parent_dir)
 
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from passlib.context import CryptContext
+import bcrypt
 
 # Web 패키지에서 import
 from Web.database import engine
 from Web.models import User
 
-# 비밀번호 해시 함수
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+def _truncate_to_72_bytes(password: str | bytes) -> bytes:
+    if isinstance(password, str):
+        raw = password.encode("utf-8")
+    else:
+        raw = password
+    return raw[:72]
 
 def get_password_hash(password: str) -> str:
     """비밀번호를 해시화합니다."""
-    return pwd_context.hash(password)
+    pw_b = _truncate_to_72_bytes(password)
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(pw_b, salt).decode("utf-8")
 
 
 async def create_admin(

@@ -8,27 +8,33 @@
 
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from .config import settings
 
-# bcrypt 기반 해시 컨텍스트
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def _truncate_to_72_bytes(password: str | bytes) -> bytes:
+    """bcrypt 입력은 72바이트까지만 유효하므로 바이트 기준으로 잘라 반환합니다."""
+    if isinstance(password, str):
+        raw = password.encode("utf-8")
+    else:
+        raw = password
+    return raw[:72]
 
 
 def verify_password(plain_password, hashed_password):
     """평문 비밀번호와 해시를 비교 검증합니다."""
-    # bcrypt는 72바이트 제한이 있으므로 잘라서 처리
-    if isinstance(plain_password, str):
-        plain_password = plain_password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-    return pwd_context.verify(plain_password, hashed_password)
+    plain_b = _truncate_to_72_bytes(plain_password)
+    hashed_b = hashed_password.encode("utf-8") if isinstance(hashed_password, str) else hashed_password
+    return bcrypt.checkpw(plain_b, hashed_b)
 
 
 def get_password_hash(password):
     """비밀번호 해시를 생성합니다."""
-    # bcrypt는 72바이트 제한이 있으므로 잘라서 처리
-    if isinstance(password, str):
-        password = password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-    return pwd_context.hash(password)
+    pw_b = _truncate_to_72_bytes(password)
+    # 기본 라운드 사용; 필요 시 환경설정으로 분리 가능
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(pw_b, salt)
+    return hashed.decode("utf-8")
 
 
 def create_access_token(data: dict):
