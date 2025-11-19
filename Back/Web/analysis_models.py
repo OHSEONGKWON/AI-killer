@@ -9,4 +9,6 @@ class AnalysisRecord(SQLModel, table=True):
     ai_probability: float
     kobert_score: float
     similarity_score: float
+    perplexity_score: Optional[float] = 0.0
+    burstiness_score: Optional[float] = 0.0
     created_at: Optional[str] = None

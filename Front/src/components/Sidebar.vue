@@ -3,13 +3,17 @@
     <nav>
       <h3>기본 기능</h3>
       <ul>
-        <li><router-link to="/">텍스트 분석</router-link></li>
+        <li><router-link to="/">홈</router-link></li>
       </ul> 
       <br>
       <ul>
-      <li><router-link to="/ai-detector">표절 검사기</router-link></li>
+      <li><router-link to="/ai-detector">AI 텍스트 분석</router-link></li>
       </ul> 
       <br> 
+      <ul>
+      <li><router-link to="/plagiarism-check">표절 검사기</router-link></li>
+      </ul>
+      <br>
       <ul>
       <li><router-link to="/grammar-check">문법 검사기</router-link></li>
       </ul> 

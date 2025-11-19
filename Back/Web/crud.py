@@ -78,7 +78,9 @@ async def create_analysis_record(
     content: str, 
     ai_probability: float, 
     kobert_score: float, 
-    similarity_score: float, 
+    similarity_score: float,
+    perplexity_score: float = 0.0,
+    burstiness_score: float = 0.0,
     created_at: str = None
 ) -> AnalysisRecord:
     """분석 결과를 데이터베이스에 저장합니다."""
@@ -88,6 +90,8 @@ async def create_analysis_record(
         ai_probability=ai_probability,
         kobert_score=kobert_score,
         similarity_score=similarity_score,
+        perplexity_score=perplexity_score,
+        burstiness_score=burstiness_score,
         created_at=created_at,
     )
     db.add(record)

@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router'; // './router/index.js' 파일을 불러옵니다.
+import './assets/styles/common.css';
 
 // 1. 앱을 **한 번만** 생성합니다.
 const app = createApp(App);

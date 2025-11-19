@@ -93,8 +93,9 @@ async def analyze(request: models.AnalysisRequest, db=Depends(get_db)):
                 ai_probability=final_probability,
                 kobert_score=kobert_score,
                 similarity_score=sbert_score,  # SBERT score stored here
+                perplexity_score=perplexity_score,
+                burstiness_score=burstiness_score,
                 created_at=datetime.utcnow().isoformat(),
-                # TODO: Add perplexity_score and burstiness_score fields to DB
             )
         except Exception as e:
             print(f"DB 저장 오류(무시하고 계속 진행): {e}")

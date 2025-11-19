@@ -62,4 +62,14 @@ export const analysisAPI = {
   analyze: (data) => api.post('/analyze', data),
 };
 
+export const grammarAPI = {
+  // 문법 검사
+  check: (data) => api.post('/grammar/check', data),
+};
+
+export const plagiarismAPI = {
+  // 표절/유사도 검사
+  check: (data) => api.post('/plagiarism/check', data),
+};
+
 export default api;

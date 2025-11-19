@@ -1,49 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import HomeView from '../views/HomeView.vue';
 import SignUpView from '../views/SignUpView.vue';
 import Login from '../views/Login.vue';
 import MyPageView from '../views/MyPageView.vue';
 import AiDetectorView from '../views/AiDetectorView.vue';
-import GrammerCheckView from '../views/GrammerCheckView.vue';
+import GrammarCheckView from '../views/GrammarCheckView.vue';
+import PlagiarismCheckView from '../views/PlagiarismCheckView.vue';
 import AuthCallback from '../views/AuthCallback.vue';
 const routes = [
-  {
-    path: '/',
-    name: 'home',
-    component: HomeView
-  },
-  {
-    path: '/auth/callback',
-    name: 'auth-callback',
-    component: AuthCallback
-  },
-  {
-    path: '/signup',
-    name: 'signup',
-    component: SignUpView
-  },
-  {
-    path: '/login',
-    name: 'login',
-    component: Login  
-  },
-  { 
-    path: '/mypage',
-    name: 'mypage',
-    component: MyPageView
-  },
-
-  {
-    path: '/Ai-detector', // 사이드바의 to="/ai-detector"와 일치
-    name: 'Ai-detector',
-    component: AiDetectorView 
-  },
-
-{
-    path: '/grammar-check', // 사이드바의 to="/grammar-check"와 일치
-    name: 'grammar-check',
-    component: GrammerCheckView
-  }
+  { path: '/', redirect: '/ai-detector' },
+  { path: '/auth/callback', name: 'auth-callback', component: AuthCallback },
+  { path: '/signup', name: 'signup', component: SignUpView },
+  { path: '/login', name: 'login', component: Login },
+  { path: '/mypage', name: 'mypage', component: MyPageView },
+  { path: '/ai-detector', name: 'ai-detector', component: AiDetectorView },
+  { path: '/plagiarism-check', name: 'plagiarism-check', component: PlagiarismCheckView },
+  { path: '/grammar-check', name: 'grammar-check', component: GrammarCheckView },
 ];
 
 const router = createRouter({
