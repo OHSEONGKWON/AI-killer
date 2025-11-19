@@ -19,7 +19,7 @@ router = APIRouter()
 
 # settings에서 카카오 설정 읽기
 KAKAO_REST_API_KEY = settings.KAKAO_REST_API_KEY
-KAKAO_REDIRECT_URI = settings.KAKAO_REDIRECT_URI or "http://localhost:8000/api/v1/auth/kakao/callback"
+KAKAO_REDIRECT_URI = settings.KAKAO_REDIRECT_URI or "http://localhost:8001/api/v1/auth/kakao/callback"
 
 
 @router.get("/auth/kakao", summary="카카오 로그인 시작")
@@ -205,14 +205,17 @@ async def login(username: str = Form(...), password: str = Form(...), db=Depends
     일반 로그인 (이메일/비밀번호 방식)
     
     Args:
-        username: 사용자명 (Form 데이터)
+        username: 사용자명 또는 이메일 (Form 데이터)
         password: 비밀번호 (Form 데이터)
     
     Returns:
         JWT 액세스 토큰
     """
-    # 사용자 조회
+    # 사용자 조회 (username 또는 email로 시도)
     user = await crud.get_user_by_username(db, username=username)
+    if not user:
+        # username으로 찾지 못하면 email로 시도
+        user = await crud.get_user_by_email(db, email=username)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
