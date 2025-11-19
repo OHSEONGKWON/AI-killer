@@ -14,7 +14,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
+import auth from '../store/auth.js';
 
 const router = useRouter();
 const loading = ref(true);
@@ -35,24 +35,15 @@ onMounted(async () => {
     // 토큰을 localStorage에 저장
     localStorage.setItem('access_token', token);
     
-    // 사용자 정보 조회 (선택 사항)
-    try {
-      const response = await axios.get('/api/v1/users/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      console.log('사용자 정보:', response.data);
-      // Vuex store에 저장하려면 여기서 처리
-    } catch (err) {
-      console.warn('사용자 정보 조회 실패:', err);
-    }
+    // auth 상태 초기화 (사용자 정보 로드)
+    await auth.initAuth();
+    
+    console.log('카카오 로그인 성공, 사용자 정보:', auth.state.user);
     
     // 로그인 성공 - 홈으로 이동
     setTimeout(() => {
       router.push('/');
-    }, 1000);
+    }, 500);
     
   } catch (err) {
     console.error('인증 처리 중 오류:', err);

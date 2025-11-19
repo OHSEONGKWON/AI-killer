@@ -16,6 +16,7 @@
             type="text"
             placeholder="제목을 입력하세요 (예: 논문/에세이 제목)"
             :disabled="isAnalyzing"
+            class="title-input"
           />
           <textarea 
             v-model="inputText" 
@@ -105,6 +106,16 @@ const clearText = () => {
 
 <style scoped>
 /* 뷰 전용 스타일 (공통 스타일은 common.css 사용) */
+.title-input {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+}
+
 .result-summary {
   display: flex;
   gap: 20px;

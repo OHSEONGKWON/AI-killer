@@ -1,7 +1,7 @@
 <template>
   <aside class="sidebar">
     <nav>
-      <h3>기본 기능</h3>
+      <h3>제공 도구들</h3>
       <ul>
         <li><router-link to="/">홈</router-link></li>
       </ul> 
