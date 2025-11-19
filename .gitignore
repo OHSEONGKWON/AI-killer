@@ -41,6 +41,9 @@ credentials/
 *.p12
 *.jks
 *.sqlite3
+*.db
+back/**/test.db
+Back/**/test.db
 
 # Logs / temp
 *.log
