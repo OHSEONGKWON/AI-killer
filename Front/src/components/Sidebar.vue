@@ -3,10 +3,6 @@
     <nav>
       <h3>제공 도구들</h3>
       <ul>
-        <li><router-link to="/">홈</router-link></li>
-      </ul> 
-      <br>
-      <ul>
       <li><router-link to="/ai-detector">AI 텍스트 분석</router-link></li>
       </ul> 
       <br> 
