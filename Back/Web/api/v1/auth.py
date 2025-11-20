@@ -189,6 +189,7 @@ async def register(user_create: models.UserCreate, db=Depends(get_db)):
         email=user_create.email,
         hashed_password=hashed_password,
         is_admin=False,
+        active=True,
         kakao_id=None
     )
     

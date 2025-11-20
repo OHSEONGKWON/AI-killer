@@ -77,7 +77,9 @@ async def create_kakao_user(db: AsyncSession, user_info: dict) -> models.User:
     db_user = models.User(
         username=user_info.get('nickname'),
         email=user_info.get('email'),
-        kakao_id=user_info.get('id')
+        kakao_id=user_info.get('id'),
+        is_admin=False,
+        active=True
     )
     db.add(db_user)
     await db.commit()
