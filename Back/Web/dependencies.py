@@ -49,6 +49,9 @@ async def get_current_user(
     user = await crud.get_user_by_username(db, username=username)
     if user is None:
         raise credentials_exception
+    # 비활성 사용자 접근 차단
+    if hasattr(user, "active") and not user.active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive account")
     return user
 
 

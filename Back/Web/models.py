@@ -52,6 +52,7 @@ class UserResponse(UserBase):
     """클라이언트에 반환할 유저 정보 스키마."""
     id: int
     is_admin: bool
+    active: bool
 
 class User(UserBase, table=True):
     """DB 테이블 모델. 실제 저장되는 필드들을 포함."""
@@ -59,6 +60,18 @@ class User(UserBase, table=True):
     hashed_password: Optional[str] = Field(default=None)
     kakao_id: Optional[int] = Field(default=None, unique=True, index=True)
     is_admin: bool = Field(default=False)
+    active: bool = Field(default=True, index=True)
+
+class UserAdminUpdate(SQLModel):
+    """관리자에 의한 사용자 정보 수정 요청."""
+    username: Optional[str] = None
+    email: Optional[str] = None
+    is_admin: Optional[bool] = None
+    active: Optional[bool] = None
+
+class UserStatusUpdate(SQLModel):
+    """사용자 활성/비활성 상태 변경 요청. 값이 없으면 토글로 처리."""
+    active: Optional[bool] = None
 
 class KakaoCode(SQLModel):
     """카카오 인증 콜백에서 전달되는 code 값."""

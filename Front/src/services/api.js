@@ -82,3 +82,15 @@ export const plagiarismAPI = {
 };
 
 export default api;
+
+// 관리자 API
+export const adminAPI = {
+  listUsers: (params) => api.get('/admin/users', { params }),
+  updateUser: (id, data) => api.patch(`/admin/users/${id}`, data),
+  resetPassword: (id) => api.post(`/admin/users/${id}/reset-password`),
+  toggleStatus: (id, active = null) => {
+    // active가 null이면 토글, 값이 있으면 지정
+    const data = active === null ? null : { active };
+    return api.patch(`/admin/users/${id}/status`, data);
+  },
+};

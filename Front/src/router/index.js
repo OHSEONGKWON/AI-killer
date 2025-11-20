@@ -6,6 +6,7 @@ import AiDetectorView from '../views/AiDetectorView.vue';
 import GrammarCheckView from '../views/GrammarCheckView.vue';
 import PlagiarismCheckView from '../views/PlagiarismCheckView.vue';
 import AuthCallback from '../views/AuthCallback.vue';
+import AdminUsersView from '../views/AdminUsersView.vue';
 const routes = [
   { path: '/', redirect: '/ai-detector' },
   { path: '/auth/callback', name: 'auth-callback', component: AuthCallback },
@@ -15,6 +16,7 @@ const routes = [
   { path: '/ai-detector', name: 'ai-detector', component: AiDetectorView },
   { path: '/plagiarism-check', name: 'plagiarism-check', component: PlagiarismCheckView },
   { path: '/grammar-check', name: 'grammar-check', component: GrammarCheckView },
+  { path: '/admin/users', name: 'admin-users', component: AdminUsersView },
 ];
 
 const router = createRouter({

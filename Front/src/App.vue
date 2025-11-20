@@ -10,6 +10,7 @@
           </template>
           <template v-else>
             <li><span class="user-name">{{ auth.state.user?.username || '사용자' }}님</span></li>
+            <li v-if="auth.state.user?.is_admin"><router-link to="/admin/users">관리자</router-link></li>
             <li><router-link to="/mypage">마이페이지</router-link></li>
             <li><button @click="logout" class="btn-secondary">로그아웃</button></li>
           </template>
