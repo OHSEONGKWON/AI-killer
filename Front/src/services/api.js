@@ -55,6 +55,15 @@ export const authAPI = {
   
   // 현재 사용자 정보 조회
   getCurrentUser: () => api.get('/users/me'),
+
+  // 내 정보 수정 (username 등)
+  updateMe: (data) => api.patch('/users/me', data),
+
+  // 비밀번호 변경
+  changePassword: (data) => api.put('/users/me/password', data),
+
+  // 회원 탈퇴
+  deleteMe: () => api.delete('/users/me'),
 };
 
 export const analysisAPI = {

@@ -39,6 +39,15 @@ class UserCreate(SQLModel):
     email: str = Field(description="이메일 주소")
     password: str = Field(min_length=6, max_length=72, description="비밀번호 (6~72자)")
 
+class UserUpdate(SQLModel):
+    """내 정보 수정 요청."""
+    username: Optional[str] = Field(default=None, description="사용자명(닉네임)")
+
+class PasswordChange(SQLModel):
+    """비밀번호 변경 요청."""
+    current_password: str = Field(description="현재 비밀번호")
+    new_password: str = Field(min_length=6, max_length=72, description="새 비밀번호 (6~72자)")
+
 class UserResponse(UserBase):
     """클라이언트에 반환할 유저 정보 스키마."""
     id: int
