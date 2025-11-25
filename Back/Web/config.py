@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     
     # OpenAI API 설정 (선택사항)
     OPENAI_API_KEY: str | None = None
+    
+    # Google Gemini API 설정 (선택사항)
+    GEMINI_API_KEY: str | None = None
 
     # 외부 API 설정 (선택사항)
     PLAGIARISM_API_URL: str | None = None
@@ -61,5 +64,8 @@ def validate_required_settings():
     
     if not settings.OPENAI_API_KEY:
         warnings.append("🟡 OPENAI_API_KEY가 설정되지 않았습니다. AI 분석 기능이 더미 데이터를 사용합니다.")
+    
+    if not settings.GEMINI_API_KEY:
+        warnings.append("🟡 GEMINI_API_KEY가 설정되지 않았습니다. 유사도 검사 기능을 사용할 수 없습니다.")
     
     return warnings

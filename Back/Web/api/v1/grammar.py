@@ -1,111 +1,79 @@
 """
-문법 검사 라우터.
+Gemini API 기반 문법 검사 라우터.
 
 주요 기능:
-- 외부 문법검사 API(예: Grammarly API, LanguageTool API 등)를 이용하여 텍스트의 문법 오류 검사
-- 오류 구간 하이라이팅 정보 제공 (시작/끝 인덱스, 오류 유형, 교정 제안)
-- 시각적 표시와 교정 제안까지 포함
-
-처리 순서:
-1) 사용자 텍스트를 외부 API로 전송
-2) 응답에서 문법 오류 목록 파싱
-3) 각 오류 구간(start_index, end_index)과 교정 제안을 반환
-
-주의:
-- 실제 외부 API 키를 config.py에 등록하고, .env 파일로 관리
-- 현재는 임시 모의 응답을 반환 (실제 API 연동 전)
+- Gemini API를 이용한 한국어 맞춤법/문법 교정
+- 윤문 (문체 개선)
+- 수정 내역 상세 설명
+- 문법 점수 및 자연스러움 평가
+- 어휘 추천
 """
 
-from typing import List
+import asyncio
 from fastapi import APIRouter, HTTPException
-import httpx
 
 from ... import models
-from ...config import settings
+from ...gemini_grammar import check_grammar
 
 router = APIRouter()
 
 
-async def call_grammar_api(text: str) -> List[models.GrammarError]:
-    """외부 문법검사 API를 호출하여 오류 목록을 반환합니다.
-    
-    실제 구현 예시:
-    - LanguageTool API: https://languagetool.org/http-api/swagger-ui/
-    - Grammarly API (비공식): https://github.com/grammarly
-    - 네이버 맞춤법 검사기 크롤링 (비추천: 불안정, robots.txt 확인 필요)
-    
-    현재는 임시 모의 응답.
-    """
-    # TODO: 실제 외부 API 호출
-    # if settings.GRAMMAR_API_URL and settings.GRAMMAR_API_KEY:
-    #     async with httpx.AsyncClient() as client:
-    #         response = await client.post(
-    #             settings.GRAMMAR_API_URL,
-    #             json={"text": text},
-    #             headers={"Authorization": f"Bearer {settings.GRAMMAR_API_KEY}"}
-    #         )
-    #         response.raise_for_status()
-    #         data = response.json()
-    #         # API 응답 파싱...
-    
-    # 임시 모의 응답
-    simulated_errors = [
-        models.GrammarError(
-            message="맞춤법 오류: '있다'를 '있다'로 수정",
-            start_index=10,
-            end_index=12,
-            error_type="spelling",
-            suggestions=["있다", "이따"]
-        ),
-        models.GrammarError(
-            message="문법 오류: 주어-동사 불일치",
-            start_index=25,
-            end_index=30,
-            error_type="grammar",
-            suggestions=["입니다", "이다"]
-        )
-    ]
-    
-    return simulated_errors
-
-
 @router.post("/grammar/check", response_model=models.GrammarCheckResponse, summary="문법 검사")
-async def check_grammar(request: models.GrammarCheckRequest):
-    """입력 텍스트의 문법 오류를 외부 API로 검사합니다.
+async def check_grammar_endpoint(request: models.GrammarCheckRequest):
+    """입력 텍스트의 문법을 Gemini API로 검사하고 교정합니다.
     
-    처리 순서:
-    1) 외부 문법검사 API 호출
-    2) 오류 목록 파싱
-    3) 각 오류의 위치와 교정 제안 반환
+    처리 내용:
+    1) 맞춤법/오타 교정 (corrected_text)
+    2) 문체 개선 및 윤문 (refined_text)
+    3) 수정 내역 상세 설명 (diff_explanation)
+    4) 문법 점수 및 자연스러움 평가 (score)
+    5) 어휘 추천 (vocabulary_suggestions)
     
     Args:
         content: 검사할 텍스트
     
     Returns:
-        errors: 문법 오류 목록
-        total_errors: 총 오류 개수
-        corrected_text: 자동 교정된 텍스트 (옵션)
+        original_text: 원문
+        corrected_text: 맞춤법 교정된 텍스트
+        refined_text: 윤문된 최종 텍스트
+        diff_explanation: 수정 내역 리스트
+        nuance_feedback: 뉘앙스 분석
+        vocabulary_suggestions: 어휘 추천 리스트
+        score: 문법/자연스러움 점수
     """
     try:
-        errors = await call_grammar_api(request.content)
+        # Gemini API는 blocking이므로 asyncio.to_thread로 비동기 처리
+        result = await asyncio.to_thread(check_grammar, request.content)
+        
+        # Gemini 응답을 Pydantic 모델로 변환
+        return models.GrammarCheckResponse(
+            original_text=result.get("original_text", request.content),
+            corrected_text=result.get("corrected_text", ""),
+            refined_text=result.get("refined_text", ""),
+            diff_explanation=[
+                models.DiffExplanation(**diff) 
+                for diff in result.get("diff_explanation", [])
+            ],
+            nuance_feedback=result.get("nuance_feedback", ""),
+            vocabulary_suggestions=[
+                models.VocabularySuggestion(**vocab) 
+                for vocab in result.get("vocabulary_suggestions", [])
+            ],
+            score=models.GrammarScore(**result.get("score", {"grammar": 0, "naturalness": 0}))
+        )
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"응답 파싱 오류: {str(e)}"
+        )
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"문법 검사 중 오류 발생: {str(e)}"
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"문법검사 API 호출 중 오류 발생: {str(e)}"
+            detail=f"예상치 못한 오류 발생: {str(e)}"
         )
-    
-    # (옵션) 자동 교정 텍스트 생성
-    # corrected_text = request.content
-    # for error in sorted(errors, key=lambda e: e.start_index, reverse=True):
-    #     if error.suggestions:
-    #         corrected_text = (
-    #             corrected_text[:error.start_index] +
-    #             error.suggestions[0] +
-    #             corrected_text[error.end_index:]
-    #         )
-    
-    return models.GrammarCheckResponse(
-        errors=errors,
-        total_errors=len(errors),
-        corrected_text=None  # 자동 교정 기능 추가 시 활성화
-    )

@@ -90,36 +90,58 @@ class MatchedSource(SQLModel):
     similarity_score: float
     matched_text: str
 
+class HighlightSegment(SQLModel):
+    """표절 하이라이트 구간."""
+    target_text: str
+    type: str  # "EXACT" | "SUSPICIOUS"
+    reason: str
+
 class PlagiarismRequest(SQLModel):
     """표절 검사 요청."""
-    content: str
-    check_web: bool = True  # 웹 검색 여부
-    check_internal: bool = False  # 내부 저장소 검사 여부
+    content: str = Field(min_length=10, max_length=10000, description="검사할 텍스트")
 
 class PlagiarismResponse(SQLModel):
     """표절 검사 응답."""
-    overall_similarity: float  # 전체 유사도 점수
-    matched_sources: List[MatchedSource]
-    is_plagiarized: bool  # 임계치 기준 표절 여부
+    suspected_source: str  # 추정 출처
+    source_url: Optional[str] = None  # 출처 URL
+    original_found: bool  # 원본 발견 여부
+    overall_similarity_score: int  # 유사도 점수 (0~100)
+    highlight_segments: List[HighlightSegment]  # 하이라이트 구간
+    highlighted_html: Optional[str] = None  # HTML 포맷 하이라이트
+    matched_sources: List[MatchedSource] = []  # 기본값 빈 리스트
+    is_plagiarized: bool = False  # 기본값 False
 
 # --- 문법 검사 API 모델 ---
-class GrammarError(SQLModel):
-    """문법 오류 정보."""
-    message: str  # 오류 설명
-    start_index: int
-    end_index: int
-    error_type: str  # "spelling", "grammar", "punctuation" 등
-    suggestions: List[str]  # 교정 제안 리스트
+class DiffExplanation(SQLModel):
+    """수정 내역 상세."""
+    original: str  # 원본 텍스트
+    changed: str  # 수정된 텍스트
+    reason: str  # 수정 이유
+
+class VocabularySuggestion(SQLModel):
+    """어휘 추천 정보."""
+    word: str  # 원문 단어
+    suggestion: str  # 추천 단어
+    reason: str  # 추천 이유
+
+class GrammarScore(SQLModel):
+    """문법 점수."""
+    grammar: int  # 문법 점수 (0~100)
+    naturalness: int  # 자연스러움 점수 (0~100)
 
 class GrammarCheckRequest(SQLModel):
     """문법검사 요청."""
-    content: str
+    content: str = Field(min_length=1, max_length=10000, description="검사할 텍스트")
 
 class GrammarCheckResponse(SQLModel):
-    """문법검사 응답."""
-    errors: List[GrammarError]
-    total_errors: int
-    corrected_text: Optional[str] = None  # (옵션) 자동 교정된 텍스트
+    """문법검사 응답 (Gemini 기반)."""
+    original_text: str  # 원문
+    corrected_text: str  # 맞춤법 교정된 텍스트
+    refined_text: str  # 윤문된 최종 텍스트
+    diff_explanation: List[DiffExplanation]  # 수정 내역
+    nuance_feedback: str  # 뉘앙스 분석
+    vocabulary_suggestions: List[VocabularySuggestion]  # 어휘 추천
+    score: GrammarScore  # 점수
 
 # --- 분석 설정 모델 (Admin) ---
 class AnalysisConfigBase(SQLModel):

@@ -24,7 +24,6 @@ from .config import validate_required_settings
 # 로그5 초기화 (환경변수 LOG_LEVEL, JSON_LOGS, SENTRY_DSN 사용)
 setup_logging()
 logger = get_logger(__name__)
-from .analysis_models import AnalysisRecord  # DB 테이블 등록
 
 
 app = FastAPI(title="블로그/에세이 AI 작성 검증 API")

@@ -81,6 +81,11 @@ export const plagiarismAPI = {
   check: (data) => api.post('/plagiarism/check', data),
 };
 
+// Gemini 기반 AI 유사도 검사
+export const similarityAPI = {
+  check: (data) => api.post('/similarity/check', data),
+};
+
 export default api;
 
 // 관리자 API

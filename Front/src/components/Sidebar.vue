@@ -3,9 +3,9 @@
     <nav>
       <h3>제공 도구들</h3>
       <ul>
-      <li><router-link to="/ai-detector">AI 텍스트 분석</router-link></li>
-      </ul> 
-      <br> 
+      <li><router-link to="/similarity">AI 유사도 검사</router-link></li>
+      </ul>
+      <br>
       <ul>
       <li><router-link to="/plagiarism-check">표절 검사기</router-link></li>
       </ul>

@@ -14,7 +14,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from sqlmodel import SQLModel
 from database import DATABASE_URL
 from models import User  # 모든 모델을 import해야 메타데이터에 포함됨
-from analysis_models import AnalysisRecord  # 분석 결과 테이블
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
