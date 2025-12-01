@@ -12,21 +12,66 @@ FastAPI 메인 엔트리 포인트.
 - 비즈니스 로직이나 엔드포인트 구현은 api/v1/* 라우터 파일로 분리합니다.
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlmodel import SQLModel
 
 from .database import engine
 from .api.v1 import router as api_v1_router
 from .logging_config import setup_logging, get_logger
 from .config import validate_required_settings
+from .exceptions import AIServiceError, SafetyBlockError, APIKeyError, QuotaExceededError
 
 # 로그5 초기화 (환경변수 LOG_LEVEL, JSON_LOGS, SENTRY_DSN 사용)
 setup_logging()
 logger = get_logger(__name__)
 
 
-app = FastAPI(title="블로그/에세이 AI 작성 검증 API")
+app = FastAPI(
+    title="AI-killer API",
+    description="한국어 텍스트 AI 작성 검증 서비스 - 문법, 표절, 유사도 검사",
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc"
+)
+
+# --- 전역 예외 핸들러 ---
+@app.exception_handler(SafetyBlockError)
+async def safety_block_exception_handler(request: Request, exc: SafetyBlockError):
+    """Gemini SAFETY 차단 예외 처리."""
+    logger.warning(f"Safety block occurred: {exc.message}", extra={"detail": exc.detail})
+    return JSONResponse(
+        status_code=400,
+        content={"detail": exc.message, "error_type": "safety_block"}
+    )
+
+@app.exception_handler(APIKeyError)
+async def api_key_exception_handler(request: Request, exc: APIKeyError):
+    """API 키 오류 예외 처리."""
+    logger.error(f"API key error: {exc.message}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": exc.message, "error_type": "api_key_error"}
+    )
+
+@app.exception_handler(QuotaExceededError)
+async def quota_exceeded_exception_handler(request: Request, exc: QuotaExceededError):
+    """API 할당량 초과 예외 처리."""
+    logger.warning(f"Quota exceeded: {exc.message}")
+    return JSONResponse(
+        status_code=429,
+        content={"detail": exc.message, "error_type": "quota_exceeded"}
+    )
+
+@app.exception_handler(AIServiceError)
+async def ai_service_exception_handler(request: Request, exc: AIServiceError):
+    """AI 서비스 공통 예외 처리."""
+    logger.error(f"AI service error: {exc.message}", extra={"detail": exc.detail})
+    return JSONResponse(
+        status_code=503,
+        content={"detail": exc.message or "AI 서비스 일시적 오류", "error_type": "ai_service_error"}
+    )
 
 # --- 🔽 프론트엔드 연결을 위한 CORS 설정 ---
 # 프론트 개발 서버 주소를 여기 배열에 추가하면 됩니다.

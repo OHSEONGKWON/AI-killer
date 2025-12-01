@@ -181,17 +181,79 @@ async def calculate_similarity(
     
     # 확률(%) 계산
     final_probability = round(final_average_score * 100, 1)
+    
+    # 사용자 텍스트 문장 분할 및 하이라이팅
+    user_sentences = [s.strip() + '.' for s in user_text.split('.') if s.strip()]
+    highlighted_sentences = []
+    
+    for idx, sentence in enumerate(user_sentences, 1):
+        if not sentence.strip():
+            continue
+            
+        # 각 사용자 문장과 Top-3 생성 문장들의 유사도 계산
+        emb_sentence = model.encode(sentence, convert_to_tensor=True)
+        max_sim = 0.0
+        best_match = None
+        
+        for top_item in top_scores:
+            emb_top = model.encode(top_item['text'], convert_to_tensor=True)
+            sim = util.cos_sim(emb_sentence, emb_top).item()
+            if sim > max_sim:
+                max_sim = sim
+                best_match = top_item['idx']
+        
+        # 유사도에 따른 위험도 레벨
+        if max_sim >= 0.7:
+            risk_level = "high"
+        elif max_sim >= 0.5:
+            risk_level = "medium"
+        elif max_sim >= 0.3:
+            risk_level = "low"
+        else:
+            risk_level = "safe"
+        
+        highlighted_sentences.append({
+            "sentence_idx": idx,
+            "text": sentence,
+            "similarity": round(max_sim, 4),
+            "risk_level": risk_level,
+            "matched_gen_idx": best_match
+        })
+    
+    # AI 작성 가능성 판단
+    if final_probability >= 80:
+        ai_likelihood = "매우 높음"
+        recommendation = "이 텍스트는 AI가 작성했을 가능성이 매우 높습니다. 재작성을 권장합니다."
+    elif final_probability >= 60:
+        ai_likelihood = "높음"
+        recommendation = "AI 작성 가능성이 높습니다. 일부 문장을 수정하는 것을 권장합니다."
+    elif final_probability >= 40:
+        ai_likelihood = "보통"
+        recommendation = "AI와 사람이 함께 작성했을 가능성이 있습니다. 의심스러운 부분을 확인하세요."
+    else:
+        ai_likelihood = "낮음"
+        recommendation = "사람이 작성한 것으로 판단됩니다. 자연스러운 텍스트입니다."
 
     return {
         "user_text": user_text,
         "topic": topic,
-        "generated_texts": generated_texts,
-        "scores": all_scores,
+        "generated_texts": generated_texts[:3],  # Top-3만 반환
+        "scores": all_scores[:3],  # Top-3만 반환
         "top_scores": top_scores,
         "final_score": final_average_score,
         "final_probability": final_probability,
         "perplexity": perplexity_score,
         "num_generated": len(generated_texts),
+        "highlighted_sentences": highlighted_sentences,
+        "ai_likelihood": ai_likelihood,
+        "recommendation": recommendation,
+        "analysis": {
+            "high_risk_sentences": sum(1 for s in highlighted_sentences if s['risk_level'] == 'high'),
+            "medium_risk_sentences": sum(1 for s in highlighted_sentences if s['risk_level'] == 'medium'),
+            "low_risk_sentences": sum(1 for s in highlighted_sentences if s['risk_level'] == 'low'),
+            "safe_sentences": sum(1 for s in highlighted_sentences if s['risk_level'] == 'safe'),
+            "total_sentences": len(highlighted_sentences)
+        },
         "weights": {
             "semantic": 1.0
         }

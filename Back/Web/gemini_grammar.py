@@ -63,13 +63,17 @@ def get_grammar_model():
     """Gemini 문법 검사 모델을 반환합니다 (싱글톤 패턴)."""
     global _grammar_model
     if _grammar_model is None:
+        # API 키 검증 (config.py에서 이미 검증되지만 명시적으로 확인)
+        if not settings.GEMINI_API_KEY:
+            raise RuntimeError("GEMINI_API_KEY가 설정되지 않았습니다.")
+        
         genai.configure(api_key=settings.GEMINI_API_KEY)
         
         generation_config = {
-            "temperature": 0.1,  # 정확한 교정을 위해 온도를 낮춤
+            "temperature": 0.1,  # 정확한 교정을 위해 창의성을 낮춤 (일관성 우선)
             "top_p": 0.95,
             "max_output_tokens": 2048,
-            "response_mime_type": "application/json",
+            "response_mime_type": "application/json",  # JSON 응답 강제 (파싱 오류 방지)
         }
         
         # 안전 설정 (문법 검사 텍스트가 필터에 걸리지 않도록)

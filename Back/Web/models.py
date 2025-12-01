@@ -7,7 +7,8 @@ Pydantic/SQLModel 스키마 정의.
 """
 
 from typing import Optional, List
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, SQLModel, JSON, Column
+from datetime import datetime
 
 # --- 분석 API 모델 ---
 class AnalysisRequest(SQLModel):
@@ -186,3 +187,62 @@ class AnalysisConfigUpdate(SQLModel):
 class AnalysisConfigResponse(AnalysisConfigBase):
     """분석 설정 응답."""
     id: int
+
+
+# --- 분석 히스토리 모델 ---
+class AnalysisHistory(SQLModel, table=True):
+    """사용자별 분석 히스토리 테이블."""
+    __tablename__ = "analysis_history"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: Optional[int] = Field(default=None, foreign_key="user.id", index=True)
+    analysis_type: str = Field(index=True, description="분석 유형: grammar, plagiarism, similarity")
+    
+    # 입력 데이터
+    input_text: str = Field(description="분석에 사용된 입력 텍스트")
+    input_length: int = Field(default=0, description="입력 텍스트 길이")
+    
+    # 결과 데이터 (JSON 타입으로 유연하게 저장)
+    result_data: dict = Field(default={}, sa_column=Column(JSON), description="분석 결과 JSON")
+    
+    # 메타 정보
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    ip_address: Optional[str] = Field(default=None, max_length=45)
+    user_agent: Optional[str] = Field(default=None, max_length=500)
+
+
+class AnalysisHistoryResponse(SQLModel):
+    """분석 히스토리 응답."""
+    id: int
+    analysis_type: str
+    input_length: int
+    result_data: dict
+    created_at: datetime
+
+
+# --- API 사용량 추적 모델 ---
+class ApiUsage(SQLModel, table=True):
+    """사용자별 일일 API 사용량 추적 테이블."""
+    __tablename__ = "api_usage"
+    
+    user_id: int = Field(foreign_key="user.id", primary_key=True, index=True)
+    date: datetime = Field(default_factory=lambda: datetime.utcnow().date(), primary_key=True, index=True)
+    
+    # 기능별 사용 횟수
+    grammar_count: int = Field(default=0, description="문법 검사 사용 횟수")
+    plagiarism_count: int = Field(default=0, description="표절 검사 사용 횟수")
+    similarity_count: int = Field(default=0, description="유사도 검사 사용 횟수")
+    
+    # 총합
+    total_count: int = Field(default=0, description="총 사용 횟수")
+    
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ApiUsageResponse(SQLModel):
+    """API 사용량 응답."""
+    date: datetime
+    grammar_count: int
+    plagiarism_count: int
+    similarity_count: int
+    total_count: int

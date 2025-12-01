@@ -2,20 +2,21 @@
 """
 Gemini API를 활용한 지능형 표절 탐지 모듈
 원본 출처를 자동으로 추적하고 표절 여부를 분석합니다.
+
+⚠️ 중요 제한사항:
+- Gemini는 실시간 인터넷 검색을 하지 않습니다
+- 학습 데이터(~2024년) 내에서만 출처를 찾을 수 있습니다
+- 최신 콘텐츠나 비공개 자료는 탐지하지 못합니다
+- 실제 표절 검증 시스템으로 사용하려면 Google Custom Search API 등과 결합 필요
 """
 import logging
 import json
+import re
 import google.generativeai as genai
-from typing import Dict, List
+from typing import Dict, List, Optional
 from .config import settings
 
 logging.getLogger("google.generativeai").setLevel(logging.ERROR)
-
-# Gemini API 키 설정
-if not settings.GEMINI_API_KEY:
-    raise RuntimeError("GEMINI_API_KEY가 설정되지 않았습니다.")
-
-genai.configure(api_key=settings.GEMINI_API_KEY)
 
 # 시스템 프롬프트
 SYSTEM_PROMPT = """
@@ -64,6 +65,12 @@ def get_plagiarism_model():
     global _plagiarism_model
     
     if _plagiarism_model is None:
+        # API 키 검증
+        if not settings.GEMINI_API_KEY:
+            raise RuntimeError("GEMINI_API_KEY가 설정되지 않았습니다.")
+        
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        
         try:
             generation_config = {
                 "temperature": 0.1,
@@ -93,9 +100,40 @@ def get_plagiarism_model():
     return _plagiarism_model
 
 
+def verify_url(url: Optional[str]) -> Optional[str]:
+    """
+    URL이 유효한 형식인지 검증합니다.
+    실제 접속 가능 여부는 확인하지 않습니다 (성능 이유).
+    
+    Args:
+        url: 검증할 URL
+    
+    Returns:
+        유효한 URL 또는 None
+    """
+    if not url:
+        return None
+    
+    # 기본 URL 형식 검증
+    url_pattern = re.compile(
+        r'^https?://'
+        r'(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}'
+        r'(?:/[^\s]*)?$'
+    )
+    
+    if url_pattern.match(url):
+        return url
+    else:
+        logging.warning(f"유효하지 않은 URL 형식: {url}")
+        return None
+
+
 def detect_plagiarism(draft_text: str) -> Dict:
     """
     입력된 텍스트의 표절 여부를 AI가 자동으로 탐지합니다.
+    
+    ⚠️ 주의: Gemini는 학습 데이터 내에서만 출처를 찾습니다.
+    실시간 웹 검색을 하지 않으므로 최신 콘텐츠는 탐지하지 못합니다.
     
     Args:
         draft_text: 검사할 텍스트
@@ -177,6 +215,17 @@ def detect_plagiarism(draft_text: str) -> Dict:
             result["overall_similarity_score"] = 0
         if "highlight_segments" not in result:
             result["highlight_segments"] = []
+        
+        # URL 검증 (Gemini가 잘못된 URL을 생성할 수 있음)
+        if result.get("source_url"):
+            verified_url = verify_url(result["source_url"])
+            if not verified_url:
+                logging.warning(f"Gemini가 유효하지 않은 URL을 반환: {result['source_url']}")
+                result["source_url"] = None
+        
+        # 출처를 찾았지만 URL이 없는 경우 경고
+        if result["original_found"] and not result["source_url"]:
+            result["suspected_source"] += " (URL 미제공 - AI 학습 데이터 기반 추론)"
         
         return result
         

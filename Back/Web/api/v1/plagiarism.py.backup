@@ -1,0 +1,144 @@
+"""
+표절 검사 라우터 (실시간 웹 검색 기반).
+
+주요 기능:
+- 실시간 웹 검색을 통한 정확한 표절 탐지
+- 실제 출처 URL 및 제목 제공
+- 문장 단위 유사도 분석
+- 유사도 점수 및 상세 분석 제공
+"""
+
+import asyncio
+import logging
+from fastapi import APIRouter, Depends, HTTPException
+
+from ... import models
+from ...web_search_plagiarism import detect_plagiarism_with_web_search
+from ...dependencies import get_current_user_optional
+
+router = APIRouter()
+
+
+
+@router.post(
+    "/plagiarism/check",
+    summary="실시간 웹 검색 표절 검사",
+    description="""
+    실시간 웹 검색 API를 사용하여 정확한 표절을 탐지합니다.
+    
+    **주요 기능:**
+    - 🌐 실시간 구글 검색으로 유사 콘텐츠 탐지
+    - 🔗 실제 출처 URL 및 페이지 제목 제공
+    - 📊 문장 단위 유사도 점수 (0.0~1.0)
+    - 🎯 사용자 정의 가능한 표절 판단 임계값
+    - ⚡ 2-4개 문장만 검색하여 빠른 응답
+    
+    **필요 설정:**
+    - .env 파일에 SERPER_API_KEY 설정 필요
+    - Serper API: https://serper.dev/ (무료: 2,500쿼리/월)
+    
+    **유사도 기준:**
+    - 0.0-0.3: 독창적
+    - 0.3-0.5: 일부 유사
+    - 0.5-0.7: 높은 유사도
+    - 0.7-1.0: 표절 의심 ⚠️
+    
+    **비용:**
+    - 텍스트당 2-4회의 검색 쿼리 사용
+    """,
+    responses={
+        200: {
+            "description": "검사 성공",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "is_plagiarized": True,
+                        "max_similarity": 0.85,
+                        "threshold": 0.7,
+                        "sources": [
+                            {
+                                "title": "위키백과 - 인공지능",
+                                "url": "https://ko.wikipedia.org/wiki/인공지능",
+                                "snippet": "인공지능은 컴퓨터 과학의 한 분야로...",
+                                "similarity": 0.85,
+                                "matched_sentence": "인공지능은 컴퓨터 과학의 한 분야로..."
+                            }
+                        ],
+                        "searched": True
+                    }
+                }
+            }
+        },
+        422: {"description": "입력 검증 오류 (20-10000자)"},
+        503: {"description": "검색 API 오류"}
+    },
+    tags=["표절 검사"]
+)
+async def check_plagiarism(
+    request: models.PlagiarismRequest,
+    current_user = Depends(get_current_user_optional)
+):
+    """실시간 웹 검색을 통해 입력 텍스트의 표절 여부를 검사합니다.
+    
+    처리 순서:
+    1) 텍스트를 문장 단위로 분할
+    2) 가장 긴 2-3개 문장으로 웹 검색 수행
+    3) 검색 결과와 유사도 계산
+    4) 표절 판정 및 출처 반환
+    
+    Args:
+        content: 검사할 텍스트 (20~10000자)
+    
+    Returns:
+        is_plagiarized: 표절 여부 (bool)
+        max_similarity: 최대 유사도 (0.0~1.0)
+        sources: 유사 출처 목록 (URL, 제목, 유사도 포함)
+        searched: 실제 검색 수행 여부
+    """
+    try:
+        # 실시간 웹 검색 표절 탐지 (비동기 처리)
+        result = await asyncio.to_thread(
+            detect_plagiarism_with_web_search, 
+            request.content,
+            threshold=0.7  # 70% 이상 유사하면 표절로 판단
+        )
+        
+        # 검색이 수행되지 않은 경우 (API 키 없음 등)
+        if not result.get("searched"):
+            raise HTTPException(
+                status_code=503,
+                detail=result.get("message", "웹 검색 API를 사용할 수 없습니다. SERPER_API_KEY를 확인하세요.")
+            )
+        
+        # 웹 검색 결과를 기존 PlagiarismResponse 모델 형식으로 변환
+        sources = result.get("sources", [])
+        top_source = sources[0] if sources else None
+        
+        response_data = {
+            models.HighlightSegment(**seg)
+            for seg in result.get("highlight_segments", [])
+        ]
+        
+        # HTML 형식 하이라이트 생성
+        highlighted_html = format_highlight_text(
+            request.content,
+            result.get("highlight_segments", [])
+        )
+        
+        return models.PlagiarismResponse(
+            suspected_source=result.get("suspected_source", "출처 불명"),
+            source_url=result.get("source_url"),
+            original_found=result.get("original_found", False),
+            overall_similarity_score=result.get("overall_similarity_score", 0),
+            highlight_segments=highlight_segments,
+            highlighted_html=highlighted_html
+        )
+        
+    except ValueError as e:
+        logging.error(f"표절 검사 입력 오류: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logging.error(f"표절 검사 중 예상치 못한 오류: {e}")
+        raise HTTPException(status_code=500, detail="표절 검사 중 오류가 발생했습니다.")
+
+

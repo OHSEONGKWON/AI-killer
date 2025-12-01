@@ -89,6 +89,7 @@ header .container {
   color: #00C4CC;
   font-weight: 900;
   text-decoration: none;
+  margin-left: -30px; /* 왼쪽으로 30px 이동 */
 }
 
 nav ul {

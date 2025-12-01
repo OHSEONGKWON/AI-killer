@@ -11,7 +11,7 @@ from ...gemini_similarity import calculate_similarity, stream_similarity
 from ...dependencies import get_current_user
 from ...models import User
 
-router = APIRouter()
+router = APIRouter(tags=["유사도 검사"])
 
 class SimilarityRequest(BaseModel):
     """유사도 검사 요청"""
@@ -29,20 +29,36 @@ class SimilarityRequest(BaseModel):
         }
 
 
-@router.post("/check", summary="텍스트 유사도 및 Perplexity 검사")
+@router.post(
+    "/check",
+    summary="AI 텍스트 유사도 검사",
+    description="""
+    주어진 주제와 텍스트를 기반으로 AI가 생성한 텍스트와의 유사도를 분석합니다.
+    
+    **분석 방법:**
+    1. 🤖 Gemini AI가 주제에 맞는 N개 문장 생성
+    2. 🧮 SBERT로 입력 텍스트와 코사인 유사도 계산
+    3. 📈 KoGPT2로 Perplexity(자연스러움) 측정
+    4. 🎯 Top-3 평균으로 최종 확률 산출
+    
+    **AI 확률 해석:**
+    - 0.0-0.3: 사람이 작성한 것으로 추정
+    - 0.3-0.6: 불확실 (혼합 가능성)
+    - 0.6-0.8: AI 작성 가능성 높음
+    - 0.8-1.0: AI 작성으로 강력히 의심
+    """,
+    responses={
+        200: {"description": "분석 성공"},
+        422: {"description": "입력 검증 오류"},
+        503: {"description": "AI 서비스 일시적 오류"}
+    }
+)
 async def check_similarity(
     request: SimilarityRequest,
     current_user: User = Depends(get_current_user)
 ):
     """
     사용자가 입력한 텍스트와 AI가 생성한 텍스트 간의 유사도 및 Perplexity를 검사합니다.
-    
-    - **topic**: 생성할 텍스트의 주제
-    - **text**: 검사할 사용자 텍스트
-    - **num_sentences**: 생성할 문단 수 (기본값: 20, 각 200자 내외)
-    
-    Returns:
-        - user_text: 입력된 사용자 텍스트
         - topic: 주제
         - generated_texts: 생성된 문장들
         - scores: 각 문장별 SBERT 점수

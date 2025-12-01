@@ -18,29 +18,56 @@ from ...gemini_grammar import check_grammar
 router = APIRouter()
 
 
-@router.post("/grammar/check", response_model=models.GrammarCheckResponse, summary="문법 검사")
+@router.post(
+    "/grammar/check",
+    response_model=models.GrammarCheckResponse,
+    summary="한국어 문법 및 스타일 검사",
+    description="""
+    입력된 한국어 텍스트를 Gemini 2.0 Flash AI로 분석하여 다음을 제공합니다:
+    
+    **주요 기능:**
+    - 📝 맞춤법/문법 오류 자동 수정
+    - ✨ 문체 개선 및 윤문 (세련된 표현)
+    - 🔍 수정 내역 상세 설명 (before/after)
+    - 📊 문법 점수 (0-100) 및 자연스러움 평가
+    - 💡 어휘 개선 제안 (더 나은 표현)
+    
+    **입력 제한:**
+    - 최소 1자, 최대 10,000자
+    
+    **응답 시간:**
+    - 일반적으로 2-5초 소요
+    """,
+    responses={
+        200: {
+            "description": "분석 성공",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "original_text": "안녕하세요. 저는 학생입니다.",
+                        "corrected_text": "안녕하세요. 저는 학생입니다.",
+                        "refined_text": "안녕하십니까. 저는 학생입니다.",
+                        "diff_explanation": [
+                            {
+                                "original": "안녕하세요",
+                                "changed": "안녕하십니까",
+                                "reason": "더 격식 있는 표현으로 개선"
+                            }
+                        ],
+                        "nuance_feedback": "전체적으로 자연스러운 문장입니다.",
+                        "vocabulary_suggestions": [],
+                        "score": {"grammar": 95, "naturalness": 90}
+                    }
+                }
+            }
+        },
+        422: {"description": "입력 검증 오류 (텍스트 길이 초과 등)"},
+        503: {"description": "AI 서비스 일시적 오류"}
+    },
+    tags=["문법 검사"]
+)
 async def check_grammar_endpoint(request: models.GrammarCheckRequest):
-    """입력 텍스트의 문법을 Gemini API로 검사하고 교정합니다.
-    
-    처리 내용:
-    1) 맞춤법/오타 교정 (corrected_text)
-    2) 문체 개선 및 윤문 (refined_text)
-    3) 수정 내역 상세 설명 (diff_explanation)
-    4) 문법 점수 및 자연스러움 평가 (score)
-    5) 어휘 추천 (vocabulary_suggestions)
-    
-    Args:
-        content: 검사할 텍스트
-    
-    Returns:
-        original_text: 원문
-        corrected_text: 맞춤법 교정된 텍스트
-        refined_text: 윤문된 최종 텍스트
-        diff_explanation: 수정 내역 리스트
-        nuance_feedback: 뉘앙스 분석
-        vocabulary_suggestions: 어휘 추천 리스트
-        score: 문법/자연스러움 점수
-    """
+    """입력 텍스트의 문법을 Gemini API로 검사하고 교정합니다."""
     try:
         # Gemini API는 blocking이므로 asyncio.to_thread로 비동기 처리
         result = await asyncio.to_thread(check_grammar, request.content)
