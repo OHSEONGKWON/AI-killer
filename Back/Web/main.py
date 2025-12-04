@@ -74,20 +74,43 @@ async def ai_service_exception_handler(request: Request, exc: AIServiceError):
     )
 
 # --- 🔽 프론트엔드 연결을 위한 CORS 설정 ---
-# 프론트 개발 서버 주소를 여기 배열에 추가하면 됩니다.
-origins = [
-    "http://localhost:8080",     # Vue 개발 서버 기본 주소
-    "http://localhost:8081",     # Vue 개발 서버 대체 포트
-    "http://172.16.1.219:8080",
-    "http://172.20.10.2:8081"    # 네트워크 주소
-]
+# 환경에 따라 동적으로 CORS origins 설정
+def get_cors_origins() -> list[str]:
+    """CORS 허용 origin 목록을 환경에 따라 반환합니다."""
+    environment = settings.ENVIRONMENT
+    frontend_url = settings.FRONTEND_URL
+    
+    # 기본 origin
+    origins = [
+        "http://localhost:8080",      # Vue 개발 서버 기본 주소
+        "http://localhost:8081",      # Vue 개발 서버 대체 포트
+        "http://127.0.0.1:8080",      # localhost IPv4
+        frontend_url,                 # 환경 변수에서 설정한 프론트엔드 URL
+    ]
+    
+    # 프로덕션 환경: 특정 도메인만 허용
+    if environment == "production":
+        origins = [frontend_url]  # 프로덕션은 설정된 URL만 허용
+        logger.warning(f"프로덕션 환경: CORS origin을 {frontend_url}로만 제한합니다")
+    else:
+        # 개발 환경: 추가 네트워크 주소 허용 (선택사항)
+        origins.extend([
+            "http://172.16.1.219:8080",
+            "http://172.20.10.2:8081"
+        ])
+        logger.info(f"개발 환경: CORS origins = {origins}")
+    
+    # 중복 제거
+    return list(set(origins))
+
+cors_origins = get_cors_origins()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,       # 어떤 Origin(출처)을 허용할지
-    allow_credentials=True,      # 쿠키 등 인증 정보를 허용할지
-    allow_methods=["*"],         # 허용할 HTTP 메서드
-    allow_headers=["*"],         # 허용할 헤더
+    allow_origins=cors_origins,      # 설정된 origins만 허용
+    allow_credentials=True,          # 쿠키 등 인증 정보를 허용할지
+    allow_methods=["*"],             # 허용할 HTTP 메서드
+    allow_headers=["*"],             # 허용할 헤더
 )
 
 

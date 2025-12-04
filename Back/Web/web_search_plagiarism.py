@@ -17,13 +17,13 @@ from .config import settings
 logger = logging.getLogger(__name__)
 
 
-def search_web(query: str, num_results: int = 5) -> List[Dict]:
+def search_web(query: str, num_results: int = 5) -> List[Dict[str, str]]:
     """
     Serper API를 사용하여 실시간 웹 검색을 수행합니다.
     
     Args:
         query: 검색할 텍스트 (최대 200자 권장)
-        num_results: 반환할 결과 수 (기본 5개)
+        num_results: 반환할 결과 수 (기본 5개, 범위: 1-10)
     
     Returns:
         검색 결과 리스트 [
@@ -31,15 +31,22 @@ def search_web(query: str, num_results: int = 5) -> List[Dict]:
                 "title": "페이지 제목",
                 "link": "URL",
                 "snippet": "요약문"
-            }
+            },
+            ...
         ]
     """
+    # 입력값 검증
+    if not query or not query.strip():
+        logger.warning("빈 검색 쿼리가 입력되었습니다")
+        return []
+    
     if not settings.SERPER_API_KEY:
         logger.warning("SERPER_API_KEY가 설정되지 않았습니다. 웹 검색을 건너뜁니다.")
         return []
     
-    # 검색 쿼리 정제 (따옴표로 감싸서 정확한 일치 검색)
-    search_query = f'"{query[:200]}"'
+    # 쿼리 정제 및 길이 제한
+    search_query = f'"{query.strip()[:200]}"'
+    num_results = max(1, min(num_results, 10))  # 1~10 범위로 제한
     
     url = "https://google.serper.dev/search"
     headers = {
@@ -54,7 +61,7 @@ def search_web(query: str, num_results: int = 5) -> List[Dict]:
     }
     
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        response = requests.post(url, json=payload, headers=headers, timeout=15)
         response.raise_for_status()
         
         data = response.json()
@@ -62,20 +69,35 @@ def search_web(query: str, num_results: int = 5) -> List[Dict]:
         
         # organic 검색 결과 파싱
         for item in data.get("organic", [])[:num_results]:
-            results.append({
-                "title": item.get("title", ""),
-                "link": item.get("link", ""),
-                "snippet": item.get("snippet", "")
-            })
+            # title과 link가 필수 필드
+            title = item.get("title", "").strip()
+            link = item.get("link", "").strip()
+            snippet = item.get("snippet", "").strip()
+            
+            if title and link:  # 최소한 title과 link는 있어야 함
+                results.append({
+                    "title": title,
+                    "link": link,
+                    "snippet": snippet
+                })
         
         logger.info(f"웹 검색 완료: {len(results)}개 결과 발견")
         return results
         
+    except requests.exceptions.Timeout:
+        logger.error(f"Serper API 요청 시간 초과 (타임아웃: 15초)")
+        return []
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"Serper API HTTP 오류: {e.response.status_code} - {e.response.text[:200]}")
+        return []
     except requests.exceptions.RequestException as e:
-        logger.error(f"Serper API 호출 실패: {e}")
+        logger.error(f"Serper API 네트워크 오류: {e}")
+        return []
+    except ValueError as e:
+        logger.error(f"웹 검색 JSON 파싱 오류: {e}")
         return []
     except Exception as e:
-        logger.error(f"웹 검색 중 오류: {e}")
+        logger.error(f"웹 검색 중 예상치 못한 오류: {e}", exc_info=True)
         return []
 
 
