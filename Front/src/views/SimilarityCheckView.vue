@@ -130,8 +130,11 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { similarityAPI } from '../services/api';
+import auth from '../store/auth';
 
+const router = useRouter();
 const topic = ref('');
 const userText = ref('');
 const loading = ref(false);
@@ -141,6 +144,13 @@ const result = ref(null);
 let errorTimer = null;
 
 const runSimilarityStream = async () => {
+  // 로그인 확인
+  if (!auth.state.isLoggedIn) {
+    alert('AI 유사도 검사는 로그인 후 이용 가능합니다.\n로그인 페이지로 이동합니다.');
+    router.push('/login');
+    return;
+  }
+
   error.value = '';
   result.value = null;
   loading.value = true;
@@ -157,6 +167,14 @@ const runSimilarityStream = async () => {
     });
     if (!response.ok) {
       console.error('Streaming HTTP status:', response.status);
+      
+      // 401 에러 처리
+      if (response.status === 401) {
+        alert('로그인이 필요합니다.\n로그인 페이지로 이동합니다.');
+        router.push('/login');
+        return;
+      }
+      
       // Fallback: 일반 API로 재시도
       const fallback = await similarityAPI.check(payload).catch(()=>null);
       if (fallback?.data) {

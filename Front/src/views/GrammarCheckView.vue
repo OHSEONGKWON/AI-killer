@@ -173,7 +173,7 @@ const analyzeText = async () => {
     
     // 401 Unauthorized 에러 처리
     if (error.response?.status === 401) {
-      alert('로그인이 필요합니다.');
+      alert('로그인이 필요합니다.\n로그인 페이지로 이동합니다.');
       router.push('/login');
       return;
     }

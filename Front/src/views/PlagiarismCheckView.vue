@@ -105,7 +105,7 @@ const getScoreClass = (score) => {
 const checkPlagiarism = async () => {
   // 로그인 확인
   if (!auth.state.isLoggedIn) {
-    alert('표절 검사는 로그인 후 이용 가능합니다.');
+    alert('표절 검사는 로그인 후 이용 가능합니다.\n로그인 페이지로 이동합니다.');
     router.push('/login');
     return;
   }
@@ -122,7 +122,7 @@ const checkPlagiarism = async () => {
     console.error(e);
     // 401 Unauthorized 에러 처리
     if (e.response?.status === 401) {
-      alert('로그인이 필요합니다.');
+      alert('로그인이 필요합니다.\n로그인 페이지로 이동합니다.');
       router.push('/login');
       return;
     }
