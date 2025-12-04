@@ -9,10 +9,11 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 import os
+from .config import settings
 
 # 데이터베이스 URL 정의
-# DB 파일을 Back/Web/test.db에 고정
-DB_PATH = os.path.join(os.path.dirname(__file__), "test.db")
+# DB 파일명을 환경변수에서 가져옴 (기본값: production.db)
+DB_PATH = os.path.join(os.path.dirname(__file__), settings.DB_NAME)
 DATABASE_URL = f"sqlite+aiosqlite:///{DB_PATH}"
 
 # 비동기 엔진 생성 (echo=True는 SQL 로그 출력)

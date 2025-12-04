@@ -38,27 +38,14 @@
       </div>
     </div>
 
-      <div class="result-section" v-if="showResult">
-        <h3>분석 결과</h3>
-        <div class="result-summary">
-            <template v-if="result.isAIDetected">
-                <i class="fas fa-robot result-icon ai-detected"></i>
-                <span class="result-text ai-detected">AI 생성 가능성: {{ result.likelihood }}%</span>
-            </template>
-            <template v-else>
-                <i class="fas fa-feather-alt result-icon human-detected"></i>
-                <span class="result-text human-detected">AI 생성 가능성: {{ result.likelihood }}%</span>
-            </template>
-        </div>
-    <div class="detailed-analysis">
-          <h4>상세 분석</h4>
-          <p v-html="result.detailedText"></p>
-    </div>
-        <div class="result-actions">
-          <button class="btn-secondary"><i class="fas fa-copy"></i> 결과 복사</button>
-          <button class="btn-secondary"><i class="fas fa-download"></i> 결과 다운로드</button>
-        </div>
-      </div>
+      <AnalysisResult 
+        v-if="showResult"
+        :is-a-i-detected="result.isAIDetected"
+        :likelihood="result.likelihood"
+        :detailed-text="result.detailedText"
+        @copy="copyResult"
+        @download="downloadResult"
+      />
     </section>
   </main>
 </template>
@@ -66,6 +53,7 @@
 <script setup>
 import { ref, reactive } from 'vue';
 import { analysisAPI } from '../services/api';
+import AnalysisResult from '../components/AnalysisResult.vue';
 
 const inputText = ref('');
 const isAnalyzing = ref(false);
@@ -143,6 +131,29 @@ const clearText = () => {
   inputText.value = '';
   showResult.value = false;
 };
+
+// 결과 복사
+const copyResult = () => {
+  const text = `AI 생성 가능성: ${result.likelihood}%\n\n${result.detailedText.replace(/<[^>]*>/g, '')}`;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('결과가 클립보드에 복사되었습니다.');
+  }).catch(() => {
+    alert('복사에 실패했습니다.');
+  });
+};
+
+// 결과 다운로드
+const downloadResult = () => {
+  const text = `AI 생성 가능성 검사 결과\n\n주제: ${subjectText.value}\nAI 생성 가능성: ${result.likelihood}%\n\n상세 분석:\n${result.detailedText.replace(/<[^>]*>/g, '')}`;
+  const element = document.createElement('a');
+  element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+  element.setAttribute('download', `AI검사결과_${new Date().toISOString().split('T')[0]}.txt`);
+  element.style.display = 'none';
+  document.body.appendChild(element);
+  element.click();
+  document.body.removeChild(element);
+};
+
 </script>
 
 <style>

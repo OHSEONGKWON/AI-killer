@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     GRAMMAR_API_URL: str | None = None
     GRAMMAR_API_KEY: str | None = None
     
+    # 데이터베이스 설정 (선택사항)
+    DB_NAME: str = "production.db"
+    
     # 로깅 설정 (선택사항)
     LOG_LEVEL: str = "INFO"
     JSON_LOGS: str = "0"
@@ -101,6 +104,9 @@ def validate_required_settings():
     
     if not settings.OPENAI_API_KEY:
         warnings.append("🟡 OPENAI_API_KEY가 설정되지 않았습니다. (현재 사용되지 않음)")
+    
+    if not settings.SERPER_API_KEY and not settings.GOOGLE_SEARCH_API_KEY:
+        warnings.append("🟡 SERPER_API_KEY 또는 GOOGLE_SEARCH_API_KEY가 설정되지 않았습니다. 웹 검색 기반 표절 검사를 사용할 수 없습니다.")
     
     if not settings.PLAGIARISM_API_URL:
         warnings.append("ℹ️  외부 표절 API가 설정되지 않았습니다. Gemini API만 사용합니다.")

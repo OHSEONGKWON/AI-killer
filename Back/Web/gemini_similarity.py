@@ -55,9 +55,38 @@ def get_sbert_model():
 # Jaccard 제거: 이제 SBERT 코사인 유사도만 사용
 
 
+def _generate_single_text(topic: str, index: int, char_limit: int) -> tuple[int, str | None, str | None]:
+    """단일 Gemini 텍스트 생성 (동기 함수 - 병렬 실행용)
+    
+    Returns:
+        (index, generated_text, error_message)
+    """
+    prompt = (
+        f"주제: '{topic}'\n"
+        "요청: 위 주제에 대해 약 200자 내외의 단락을 작성하세요.\n"
+        "조건: 목록/개조식 금지, 이전 결과와 내용 중복 금지, 하나의 완결된 문단으로 작성.\n"
+        f"표시: (항목 번호: {index+1})"
+    )
+    
+    try:
+        response = gemini_model.generate_content(prompt)
+        text = getattr(response, 'text', '').strip()
+        
+        if not text and response.parts:
+            text = " ".join(part.text for part in response.parts if hasattr(part, 'text')).strip()
+        
+        if text:
+            text = text[:char_limit]
+            return (index, text, None)
+        else:
+            return (index, None, "응답이 비어있습니다.")
+    except Exception as e:
+        return (index, None, str(e))
+
+
 async def generate_gemini_texts(topic: str, num_sentences: int = 20, char_limit: int = 200) -> List[str]:
     """
-    Gemini API를 사용하여 주제에 대한 다양한 문장을 생성합니다.
+    Gemini API를 사용하여 주제에 대한 다양한 문장을 병렬로 생성합니다.
     
     Args:
         topic: 생성할 문장의 주제
@@ -70,34 +99,58 @@ async def generate_gemini_texts(topic: str, num_sentences: int = 20, char_limit:
     if gemini_model is None:
         raise RuntimeError("Gemini 모델이 초기화되지 않았습니다.")
     
-    generated_texts = []
+    # ThreadPoolExecutor를 사용한 병렬 처리
+    from concurrent.futures import ThreadPoolExecutor
+    import asyncio
     
-    for i in range(num_sentences):
-        prompt = (
-            f"주제: '{topic}'\n"
-            "요청: 위 주제에 대해 약 200자 내외의 단락을 작성하세요.\n"
-            "조건: 목록/개조식 금지, 이전 결과와 내용 중복 금지, 하나의 완결된 문단으로 작성.\n"
-            f"표시: (항목 번호: {i+1})"
-        )
+    loop = asyncio.get_event_loop()
+    results = []
+    
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        # 모든 작업을 동시에 제출
+        futures = [
+            loop.run_in_executor(
+                executor,
+                _generate_single_text,
+                topic,
+                i,
+                char_limit
+            )
+            for i in range(num_sentences)
+        ]
         
-        try:
-            response = gemini_model.generate_content(prompt)
-            text = getattr(response, 'text', '').strip()
-            
-            if not text and response.parts:
-                text = " ".join(part.text for part in response.parts if hasattr(part, 'text')).strip()
-            
-            if text:
-                # 200자 내외를 유지하기 위해 하드 컷 적용
-                text = text[:char_limit]
-                generated_texts.append(text)
-            else:
-                logging.warning(f"{i+1}번째 문장 생성 실패: 응답이 비어있습니다.")
-                
-        except Exception as e:
-            logging.error(f"Gemini API 호출 중 오류: {e}")
-            continue
+        # 모든 작업 완료 대기
+        results = await asyncio.gather(*futures)
     
+    # 결과 처리
+    generated_texts = []
+    failed_count = 0
+    max_failures = int(num_sentences * 0.3)
+    
+    for index, text, error in results:
+        if text:
+            generated_texts.append(text)
+        else:
+            failed_count += 1
+            logging.warning(f"{index+1}번째 문장 생성 실패: {error}")
+            
+            # 실패율이 30%를 초과하면 즉시 중단
+            if failed_count > max_failures:
+                from .exceptions import AIServiceError
+                raise AIServiceError(
+                    message=f"Gemini API 호출 실패가 과다합니다 ({failed_count}/{len(results)} 실패). API 키 또는 할당량을 확인하세요.",
+                    detail=error or "알 수 없는 오류"
+                )
+    
+    # 최소 문장 수 검증
+    if len(generated_texts) < num_sentences * 0.5:
+        from .exceptions import AIServiceError
+        raise AIServiceError(
+            message=f"충분한 AI 텍스트를 생성하지 못했습니다 ({len(generated_texts)}/{num_sentences}개 생성됨).",
+            detail="API 할당량 또는 네트워크 문제를 확인하세요."
+        )
+    
+    logging.info(f"Gemini 텍스트 생성 완료: {len(generated_texts)}/{num_sentences}개 성공")
     return generated_texts
 
 

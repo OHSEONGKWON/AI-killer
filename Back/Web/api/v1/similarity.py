@@ -68,18 +68,42 @@ async def check_similarity(
         - perplexity: 사용자 텍스트의 Perplexity 값
         - num_generated: 생성된 문장 수
     """
+    import time
+    start_time = time.time()
+    
     try:
+        logging.info("유사도 검사 시작", extra={
+            "user_id": current_user.id,
+            "topic": request.topic,
+            "text_length": len(request.text),
+            "num_sentences": request.num_sentences
+        })
+        
         result = await calculate_similarity(
             user_text=request.text,
             topic=request.topic,
             num_sentences=request.num_sentences
         )
+        
+        execution_time = time.time() - start_time
+        logging.info("유사도 검사 완료", extra={
+            "user_id": current_user.id,
+            "final_probability": result.get("final_probability", 0),
+            "execution_time": f"{execution_time:.2f}s"
+        })
+        
         return result
     except ValueError as e:
-        logging.error(f"유사도 검사 중 오류: {e}")
+        logging.error(f"유사도 검사 중 오류: {e}", extra={
+            "user_id": current_user.id,
+            "error_type": "validation"
+        })
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logging.error(f"유사도 검사 중 예상치 못한 오류: {e}")
+        logging.error(f"유사도 검사 중 예상치 못한 오류: {e}", extra={
+            "user_id": current_user.id,
+            "error_type": "unexpected"
+        })
         raise HTTPException(status_code=500, detail="유사도 검사 중 오류가 발생했습니다.")
 
 
