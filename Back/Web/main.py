@@ -20,7 +20,7 @@ from sqlmodel import SQLModel
 from .database import engine
 from .api.v1 import router as api_v1_router
 from .logging_config import setup_logging, get_logger
-from .config import validate_required_settings
+from .config import validate_required_settings, settings
 from .exceptions import AIServiceError, SafetyBlockError, APIKeyError, QuotaExceededError
 
 # 로그5 초기화 (환경변수 LOG_LEVEL, JSON_LOGS, SENTRY_DSN 사용)
@@ -103,14 +103,19 @@ def get_cors_origins() -> list[str]:
     # 중복 제거
     return list(set(origins))
 
-cors_origins = get_cors_origins()
 
+# 초기 CORS 설정 (고정값으로 시작)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,      # 설정된 origins만 허용
-    allow_credentials=True,          # 쿠키 등 인증 정보를 허용할지
-    allow_methods=["*"],             # 허용할 HTTP 메서드
-    allow_headers=["*"],             # 허용할 헤더
+    allow_origins=[
+        "http://localhost:8080",
+        "http://localhost:8081",
+        "http://127.0.0.1:8080",
+        settings.FRONTEND_URL or "http://localhost:8080"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
