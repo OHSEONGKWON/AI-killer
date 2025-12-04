@@ -44,7 +44,7 @@
           </div>
         </div>
         <div class="recommendation">
-          <strong>💡 분석 결과:</strong> {{ result.recommendation }}
+          <strong>분석 결과:</strong> {{ result.recommendation }}
         </div>
         <div v-if="result.perplexity" class="perplexity-box">
           <span class="label">Perplexity:</span>
@@ -78,21 +78,19 @@
 
       <!-- 입력 텍스트 하이라이팅 -->
       <section class="highlight-section">
-        <h3>🎨 입력 텍스트 분석 (문장별 위험도)</h3>
-        <div class="sentence-list">
-          <div
-            v-for="sent in result.highlighted_sentences"
-            :key="sent.sentence_idx"
-            class="sentence-item"
-            :class="'risk-' + sent.risk_level"
-          >
-            <div class="sentence-header">
-              <span class="sentence-marker" :class="'marker-' + sent.risk_level">{{ sent.sentence_idx }}</span>
-              <span class="similarity-badge">유사도: {{ (sent.similarity * 100).toFixed(1) }}%</span>
-              <span class="match-info">매칭: AI 문단 #{{ sent.matched_gen_idx }}</span>
-            </div>
-            <div class="sentence-content">{{ sent.text }}</div>
-          </div>
+        <h3>입력 텍스트 분석 (문장별 위험도)</h3>
+        <div class="text-with-highlight" v-if="result.highlighted_sentences">
+          <p v-for="(paragraph, pIdx) in groupedParagraphs" :key="pIdx" class="text-paragraph">
+            <span
+              v-for="sent in paragraph"
+              :key="sent.sentence_idx"
+              class="highlighted-sentence"
+              :class="'risk-' + sent.risk_level"
+              :title="`유사도: ${(sent.similarity * 100).toFixed(1)}% | AI 문단 #${sent.matched_gen_idx}`"
+            >
+              {{ sent.text }}
+            </span>
+          </p>
         </div>
         <div class="legend">
           <span class="legend-item risk-high">높음 (≥70%)</span>
@@ -104,7 +102,7 @@
 
       <!-- Top-3 AI 생성 문단 -->
       <section class="top-summary">
-        <h3>🏆 상위 3개 유사 AI 문단</h3>
+        <h3>상위 3개 유사 AI 문단</h3>
         <div class="top-cards">
           <div v-for="(top, index) in result.top_scores" :key="top.idx" class="top-card">
             <div class="rank-badge">{{ index + 1 }}위</div>
@@ -119,17 +117,12 @@
           </div>
         </div>
       </section>
-
-      <details class="raw-json">
-        <summary>🔍 원본 응답 보기 (개발자용)</summary>
-        <pre>{{ JSON.stringify(result, null, 2) }}</pre>
-      </details>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { similarityAPI } from '../services/api';
 import auth from '../store/auth';
@@ -142,6 +135,29 @@ const error = ref('');
 const result = ref(null);
 
 let errorTimer = null;
+
+// 문장들을 문단으로 그룹화
+const groupedParagraphs = computed(() => {
+  if (!result.value?.highlighted_sentences) return [];
+  
+  const sentences = result.value.highlighted_sentences;
+  const paragraphs = [];
+  let currentParagraph = [];
+  
+  // 원본 텍스트에서 문단 구분 (2개 이상의 공백줄로 구분)
+  const paragraphTexts = userText.value.split(/\n\s*\n+/);
+  
+  // 각 문장이 어느 문단에 속하는지 찾기
+  sentences.forEach((sent) => {
+    currentParagraph.push(sent);
+  });
+  
+  if (currentParagraph.length > 0) {
+    paragraphs.push(currentParagraph);
+  }
+  
+  return paragraphs;
+});
 
 const runSimilarityStream = async () => {
   // 로그인 확인
@@ -301,22 +317,36 @@ const getRiskIcon = (probability) => {
 /* Highlighted Text */
 .highlight-section { background: #fff; padding: 28px; border-radius: 16px; margin-bottom: 32px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
 .highlight-section h3 { margin: 0 0 20px; font-size: 20px; }
-.sentence-list { display: flex; flex-direction: column; gap: 12px; }
-.sentence-item { padding: 16px; border-radius: 10px; border-left: 4px solid; transition: all 0.3s; }
-.sentence-item:hover { transform: translateX(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-.sentence-item.risk-high { background: rgba(255, 71, 87, 0.08); border-left-color: #ff4757; }
-.sentence-item.risk-medium { background: rgba(255, 165, 2, 0.08); border-left-color: #ffa502; }
-.sentence-item.risk-low { background: rgba(255, 211, 42, 0.08); border-left-color: #ffd32a; }
-.sentence-item.risk-safe { background: rgba(38, 222, 129, 0.06); border-left-color: #26de81; }
-.sentence-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
-.sentence-marker { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: 12px; font-weight: 700; color: #fff; }
-.marker-high { background: #ff4757; }
-.marker-medium { background: #ffa502; }
-.marker-low { background: #ffd32a; color: #333; }
-.marker-safe { background: #26de81; }
-.similarity-badge { padding: 4px 12px; background: #f8f9fa; border-radius: 6px; font-size: 12px; font-weight: 600; color: #333; border: 1px solid #e0e0e0; }
-.match-info { padding: 4px 12px; background: #e3f2fd; border-radius: 6px; font-size: 12px; font-weight: 600; color: #1976d2; }
-.sentence-content { line-height: 1.6; color: #333; font-size: 14px; padding-left: 40px; }
+
+.text-with-highlight { line-height: 1.8; color: #333; font-size: 15px; }
+.text-paragraph { margin-bottom: 1.5em; text-align: justify; }
+.highlighted-sentence { 
+  display: inline;
+  padding: 2px 4px;
+  border-radius: 4px;
+  cursor: help;
+  transition: all 0.3s ease;
+  position: relative;
+}
+.highlighted-sentence:hover { opacity: 0.8; }
+.highlighted-sentence.risk-high { 
+  background-color: rgba(255, 71, 87, 0.25); 
+  border-bottom: 2px solid #ff4757;
+  font-weight: 500;
+}
+.highlighted-sentence.risk-medium { 
+  background-color: rgba(255, 165, 2, 0.2); 
+  border-bottom: 2px solid #ffa502;
+}
+.highlighted-sentence.risk-low { 
+  background-color: rgba(255, 211, 42, 0.15); 
+  border-bottom: 2px solid #ffd32a;
+}
+.highlighted-sentence.risk-safe { 
+  background-color: rgba(38, 222, 129, 0.08); 
+  border-bottom: 1px solid #26de81;
+}
+
 .legend { margin-top: 20px; display: flex; gap: 16px; flex-wrap: wrap; }
 .legend-item { padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }
 .legend-item.risk-high { background: #ff4757; color: #fff; }

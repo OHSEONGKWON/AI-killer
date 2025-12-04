@@ -114,6 +114,13 @@ def calculate_text_similarity(text1: str, text2: str) -> float:
     """
     import re
     
+    # 먼저 정확한 일치 확인 (원본 텍스트 기준)
+    text1_exact = text1.strip()
+    text2_exact = text2.strip()
+    
+    if text1_exact == text2_exact:
+        return 1.0  # 정확히 같으면 100%
+    
     # 텍스트 정규화 (소문자, 특수문자 제거, 공백 정리)
     def normalize(text):
         text = text.lower()
@@ -126,6 +133,10 @@ def calculate_text_similarity(text1: str, text2: str) -> float:
     
     if not text1_norm or not text2_norm:
         return 0.0
+    
+    # 정규화 후 정확한 일치 확인
+    if text1_norm == text2_norm:
+        return 0.95  # 정규화 후에도 같으면 95% (약간의 차이는 있지만 거의 동일)
     
     # 1. 문자 수준 유사도 (Longest Common Subsequence 비율)
     def lcs_ratio(s1, s2):
@@ -205,16 +216,16 @@ def calculate_text_similarity(text1: str, text2: str) -> float:
     
     substring_ratio = longest_common_substring_ratio(text1_norm, text2_norm)
     
-    # 가중 평균 (문자 LCS 25%, 단어 20%, bigram 25%, trigram 20%, 연속문자 10%)
+    # 가중 평균 (문자 LCS 30%, 단어 20%, bigram 25%, trigram 15%, 연속문자 10%)
     similarity = (
-        (char_similarity * 0.25) + 
+        (char_similarity * 0.30) + 
         (word_jaccard * 0.20) + 
         (bigram_jaccard * 0.25) + 
-        (trigram_jaccard * 0.20) +
+        (trigram_jaccard * 0.15) +
         (substring_ratio * 0.10)
     )
     
-    return similarity
+    return min(similarity, 1.0)  # 1.0을 초과하지 않도록 제한
 
 
 def detect_plagiarism_with_web_search(text: str, threshold: float = 0.7) -> Dict:

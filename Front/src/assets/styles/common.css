@@ -26,38 +26,39 @@
 .container { width: 90%; max-width: 1200px; margin: 0 auto; }
 
 .btn-analyze {
-  display: block;
-  width: 100%;
-  padding: 15px 20px;
+  display: inline-block;
+  width: auto;
+  padding: 12px 40px;
   background-color: #00C4CC;
   color: #FFFFFF;
   border: none;
   border-radius: 8px;
-  font-size: 1.2em;
+  font-size: 1.1em;
   font-weight: bold;
   cursor: pointer;
-  margin-top: 20px;
+  margin-top: 15px;
   transition: background-color 0.3s ease, transform 0.2s ease;
 }
 .btn-analyze:hover { background-color: #009999; transform: translateY(-2px); }
 .btn-analyze:disabled { background-color: #ccc; cursor: not-allowed; }
 
 .btn-secondary {
-  background-color: #6C757D;
+  background-color: #00C4CC;
   color: #FFFFFF;
-  padding: 10px 15px;
+  padding: 12px 30px;
   border: none;
-  border-radius: 5px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 0.9em;
-  margin-right: 10px;
+  font-size: 0.95em;
+  font-weight: 600;
   transition: background-color 0.3s ease;
 }
-.btn-secondary:hover { background-color: #5a6268; }
+.btn-secondary:hover { background-color: #009999; }
 .btn-secondary i { margin-right: 5px; }
 
 .detection-area { background-color: #FFFFFF; padding: 40px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-.detection-area h2 { font-size: 2em; color: #333; text-align: center; margin-bottom: 30px; }
+.detection-area h2 { font-size: 2em; color: #333; text-align: center; margin-bottom: 10px; }
+.subtitle { text-align: center; color: #666; margin-bottom: 30px; font-size: 0.95em; }
 .input-section { margin-bottom: 30px; }
 
 textarea {
@@ -74,7 +75,8 @@ textarea {
 }
 textarea:focus { border-color: #00C4CC; }
 
-.input-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; color: #6C757D; font-size: 0.9em; }
+.input-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; gap: 20px; }
+.input-controls span { color: #6C757D; font-size: 0.9em; }
 .action-buttons { display: flex; gap: 10px; }
 .icon-btn { background: none; border: none; font-size: 1.2em; color: #6C757D; cursor: pointer; transition: color 0.3s ease; }
 .icon-btn:hover { color: #007BFF; }

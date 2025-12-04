@@ -26,10 +26,6 @@
         </svg>
         <span>카카오로 로그인</span>
       </button>
-
-      <div class="links">
-        <a href="/register">회원가입</a>
-      </div>
     </div>
   </div>
 </template>

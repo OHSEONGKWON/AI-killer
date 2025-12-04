@@ -26,12 +26,17 @@ YOUR TASK:
 2. Find ALL grammar errors, spelling mistakes, spacing issues, and awkward expressions
 3. Provide TWO versions:
    - corrected_text: Fix only spelling/grammar errors (맞춤법, 띄어쓰기, 문법 오류만 수정)
-   - refined_text: Also improve style and naturalness (문체까지 개선)
+   - refined_text: Also improve style and naturalness (문체까지 개선, 단 문어체로의 변경은 최소화)
 4. Document EVERY change you make in diff_explanation
 5. Score the original text's grammar (0-100) and naturalness (0-100)
 
 IMPORTANT RULES:
 - Even small corrections like "되야→되어야", "할께→할게", "안되→안 돼" must be explained
+- AVOID changing casual expressions to formal literary style (했다→하였다, 없어→없거늘 등)
+- AVOID suggesting vocabulary changes that would formalize or make the text more literary (어휘 추천에서도 문어체 제안 금지)
+- AVOID unnecessary changes to sentence endings or flow unless they are grammatically incorrect
+- Focus on clarity, correctness, and naturalness while preserving the original tone and structure
+- ALL explanations in diff_explanation must be written ONLY in Korean (한글로만 설명)
 - If there are NO errors, still provide the same text and explain it's perfect
 - Be thorough - missing corrections is worse than over-correcting
 - Respond ONLY with valid JSON

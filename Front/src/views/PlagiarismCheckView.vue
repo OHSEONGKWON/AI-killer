@@ -10,7 +10,7 @@
           <div class="input-controls">
             <span class="char-count">{{ content.length }} / 10000 글자</span>
             <button class="btn-analyze" @click="checkPlagiarism" :disabled="loading || content.trim().length < 10">
-              {{ loading ? '🔍 AI 분석 중...' : '🚀 검사 시작' }}
+              {{ loading ? 'AI 분석 중...' : '검사 시작' }}
             </button>
           </div>
         </div>
@@ -18,7 +18,7 @@
         <!-- 로딩 -->
         <div v-if="loading" class="loading-overlay">
           <div class="spinner"></div>
-          <p>AI가 인터넷과 지식 베이스를 검색 중입니다...</p>
+          <p>표절 검사가 진행중입니다</p>
         </div>
 
         <!-- 결과 -->
@@ -45,28 +45,28 @@
                 </span>
               </div>
               <small :class="{ found: result.original_found }">
-                {{ result.original_found ? '✅ 원본 발견됨' : '❌ 원본 미발견' }}
+                {{ result.original_found ? '원본 발견됨' : '원본 미발견' }}
               </small>
             </div>
           </div>
 
           <!-- 하이라이트된 텍스트 -->
           <div class="highlight-section" v-if="result.highlight_segments && result.highlight_segments.length > 0">
-            <h4>🔍 표절 의심 구간 (시각화)</h4>
+            <h4>표절 의심 구간</h4>
             <div class="highlighted-text" v-html="result.highlighted_html"></div>
             
             <div class="legend">
-              <span class="legend-item exact">🔴 정확 일치 (EXACT)</span>
-              <span class="legend-item suspicious">🟡 의심 구간 (SUSPICIOUS)</span>
+              <span class="legend-item exact">정확 일치 (EXACT)</span>
+              <span class="legend-item suspicious">의심 구간 (SUSPICIOUS)</span>
             </div>
           </div>
 
           <!-- 상세 분석 -->
           <div class="detailed-analysis" v-if="result.highlight_segments && result.highlight_segments.length > 0">
-            <h4>💡 상세 분석</h4>
+            <h4>상세 분석</h4>
             <ul class="segment-list">
               <li v-for="(seg, idx) in result.highlight_segments" :key="idx" :class="seg.type.toLowerCase()">
-                <span class="icon">{{ seg.type === 'EXACT' ? '🔴' : '🟡' }}</span>
+                <span class="icon">{{ seg.type === 'EXACT' ? '[정확]' : '[의심]' }}</span>
                 <div class="segment-content">
                   <div class="segment-type">[{{ seg.type }}]</div>
                   <div class="segment-text">"{{ seg.target_text }}"</div>
@@ -77,7 +77,7 @@
           </div>
 
           <div v-else class="no-plagiarism">
-            ✅ 표절 의심 구간이 발견되지 않았습니다. 창작물일 가능성이 높습니다.
+            ✓ 표절 의심 구간이 발견되지 않았습니다. 창작물일 가능성이 높습니다.
           </div>
         </div>
       </div>

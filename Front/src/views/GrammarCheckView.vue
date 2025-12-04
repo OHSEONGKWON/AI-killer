@@ -8,58 +8,60 @@
     <section class="detection-area">
       <div class="container">
         <h2>문법 검사기</h2>
+        <p class="subtitle">AI가 자동으로 원본 출처를 추적하고 문법 오류를 분석합니다</p>
+        
         <div class="input-section">
-          <textarea v-model="inputText" placeholder="여기에 문법 검사를 받을 텍스트를 입력해주세요."></textarea>
+          <textarea v-model="inputText" placeholder="여기에 문법 검사를 받을 텍스트를 입력해주세요." rows="10"></textarea>
           <div class="input-controls">
-            <span id="charCount">{{ inputText.length }} 글자</span>
-            <div class="action-buttons">
-              <button class="icon-btn" @click="clearText"><i class="fas fa-eraser"></i></button>
-            </div>
+            <span class="char-count">{{ inputText.length }} / 10000 글자</span>
+            <button class="btn-analyze" @click="analyzeText" :disabled="isAnalyzing">
+              {{ isAnalyzing ? '검사 중...' : '검사 시작' }}
+            </button>
           </div>
-          <button @click="analyzeText" class="btn-analyze" :disabled="isAnalyzing">
-            {{ isAnalyzing ? '검사 중...' : '검사 시작' }}
-          </button>
         </div>
       </div>
 
+      <!-- 로딩 -->
+      <!-- 로딩 -->
+      <div v-if="isAnalyzing" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>문법을 검사 중입니다. 잠시만 기다려주세요...</p>
+      </div>
+
+      <!-- 결과 -->
       <div class="result-section" v-if="showResult">
         <h3>검사 결과</h3>
         
-        <!-- 점수 박스 -->
-        <div class="score-container">
-          <div class="score-box">
-            <h4>문법 점수</h4>
-            <div class="score-value" :class="getScoreClass(result.score.grammar)">
-              {{ result.score.grammar }}점
-            </div>
+        <div class="result-summary">
+          <div class="result-box score-box">
+            <strong>문법 점수</strong>
+            <div class="score" :class="getScoreClass(result.score.grammar)">{{ result.score.grammar }}점</div>
           </div>
-          <div class="score-box">
-            <h4>자연스러움</h4>
-            <div class="score-value" :class="getScoreClass(result.score.naturalness)">
-              {{ result.score.naturalness }}점
-            </div>
+          <div class="result-box score-box">
+            <strong>자연스러움</strong>
+            <div class="score" :class="getScoreClass(result.score.naturalness)">{{ result.score.naturalness }}점</div>
           </div>
         </div>
 
         <!-- 원문/교정/윤문 비교 -->
         <div class="text-comparison">
           <div class="text-box">
-            <h4>📝 원문</h4>
+            <h4>원문</h4>
             <p class="original-text">{{ result.originalText }}</p>
           </div>
           <div class="text-box">
-            <h4>✅ 교정 (맞춤법/오타)</h4>
+            <h4>교정 (맞춤법/오타)</h4>
             <p class="corrected-text">{{ result.correctedText }}</p>
           </div>
           <div class="text-box highlight">
-            <h4>✨ 윤문 (최종)</h4>
+            <h4>윤문 (최종)</h4>
             <p class="refined-text">{{ result.refinedText }}</p>
           </div>
         </div>
 
         <!-- 수정 내역 상세 -->
         <div class="diff-section" v-if="result.diffExplanation.length > 0">
-          <h4>🔧 수정 내역 상세</h4>
+          <h4>수정 내역 상세</h4>
           <div class="diff-list">
             <div v-for="(diff, index) in result.diffExplanation" :key="index" class="diff-item">
               <div class="diff-change">
@@ -72,18 +74,18 @@
           </div>
         </div>
         <div v-else class="no-errors">
-          <p>🎉 수정할 내용이 없습니다. 완벽한 문장입니다!</p>
+          <p>수정할 내용이 없습니다. 완벽한 문장입니다!</p>
         </div>
 
         <!-- 뉘앙스 분석 -->
         <div class="nuance-section">
-          <h4>💡 뉘앙스 분석</h4>
+          <h4>뉘앙스 분석</h4>
           <p>{{ result.nuanceFeedback }}</p>
         </div>
 
         <!-- 어휘 추천 -->
         <div class="vocab-section" v-if="result.vocabularySuggestions.length > 0">
-          <h4>📚 어휘 추천</h4>
+          <h4>어휘 추천</h4>
           <div class="vocab-list">
             <div v-for="(vocab, index) in result.vocabularySuggestions" :key="index" class="vocab-item">
               <span class="vocab-word">{{ vocab.word }}</span>
@@ -96,7 +98,7 @@
 
         <div class="result-actions">
           <button class="btn-secondary" @click="copyToClipboard(result.refinedText)">
-            <i class="fas fa-copy"></i> 윤문 결과 복사
+            문법 교정 결과 복사
           </button>
         </div>
       </div>
@@ -209,45 +211,47 @@ const copyToClipboard = (text) => {
 </script>
 
 <style scoped>
-.score-container {
-  display: flex;
+.result-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 20px;
   margin-bottom: 30px;
 }
 
-.score-box {
-  flex: 1;
-  background: #f8f9fa;
+.result-box {
   padding: 20px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
   border-radius: 8px;
   text-align: center;
 }
 
-.score-box h4 {
-  margin: 0 0 10px 0;
-  font-size: 16px;
+.result-box strong {
+  display: block;
+  font-size: 14px;
   color: #666;
+  margin-bottom: 10px;
 }
 
-.score-value {
-  font-size: 36px;
+.score {
+  font-size: 32px;
   font-weight: bold;
-  margin: 10px 0;
+  margin-top: 10px;
 }
 
-.score-value.excellent {
+.score.excellent {
   color: #28a745;
 }
 
-.score-value.good {
+.score.good {
   color: #5cb85c;
 }
 
-.score-value.fair {
+.score.fair {
   color: #ffc107;
 }
 
-.score-value.poor {
+.score.poor {
   color: #dc3545;
 }
 
