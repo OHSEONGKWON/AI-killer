@@ -1,6 +1,6 @@
 <template>
   <div class="similarity-wrapper">
-    <h2>🤖 AI 유사도 검사 (Gemini + SBERT)</h2>
+    <h2>AI 유사도 검사</h2>
 
     <form @submit.prevent="runSimilarityStream" class="similarity-form">
       <label>

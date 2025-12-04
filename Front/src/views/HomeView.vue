@@ -109,14 +109,14 @@ const analyzeText = async () => {
       result.detailedText = `<span class="highlight-ai">높은 AI 생성 가능성이 감지되었습니다.</span><br><br>
         <strong>세부 점수:</strong><br>
         - KoBERT: ${Math.round(data.analysis_details.kobert_score * 100)}%<br>
-        - SBERT 유사도: ${Math.round(data.analysis_details.similarity_score * 100)}%<br>
+        - 유사도: ${Math.round(data.analysis_details.similarity_score * 100)}%<br>
         - Perplexity: ${Math.round(data.analysis_details.perplexity_score * 100)}%<br>
         - Burstiness: ${Math.round(data.analysis_details.burstiness_score * 100)}%`;
     } else {
       result.detailedText = `<span class="highlight-human">AI보다는 인간이 작성했을 가능성이 높습니다.</span><br><br>
         <strong>세부 점수:</strong><br>
         - KoBERT: ${Math.round(data.analysis_details.kobert_score * 100)}%<br>
-        - SBERT 유사도: ${Math.round(data.analysis_details.similarity_score * 100)}%<br>
+        - 유사도: ${Math.round(data.analysis_details.similarity_score * 100)}%<br>
         - Perplexity: ${Math.round(data.analysis_details.perplexity_score * 100)}%<br>
         - Burstiness: ${Math.round(data.analysis_details.burstiness_score * 100)}%`;
     }

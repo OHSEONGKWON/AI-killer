@@ -2,7 +2,7 @@
   <main>
     <section class="detection-area">
       <div class="container">
-        <h2>🕵️ AI 표절 검사 (Gemini)</h2>
+        <h2>AI 표절 검사</h2>
         <p class="subtitle">AI가 자동으로 원본 출처를 추적하고 표절 여부를 분석합니다</p>
         
         <div class="input-section">
