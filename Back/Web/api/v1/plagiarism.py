@@ -10,11 +10,11 @@
 
 import asyncio
 import logging
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 
 from ... import models
 from ...web_search_plagiarism import detect_plagiarism_with_web_search
-from ...dependencies import get_current_user_optional
+from ...dependencies import get_current_user
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ logger = logging.getLogger(__name__)
 )
 async def check_plagiarism(
     request: models.PlagiarismRequest,
-    current_user = Depends(get_current_user_optional)
+    current_user = Depends(get_current_user)
 ):
     """실시간 웹 검색을 통해 입력 텍스트의 표절 여부를 검사합니다.
     

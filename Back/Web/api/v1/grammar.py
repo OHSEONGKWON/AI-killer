@@ -10,10 +10,11 @@ Gemini API 기반 문법 검사 라우터.
 """
 
 import asyncio
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, status
 
 from ... import models
 from ...gemini_grammar import check_grammar
+from ...dependencies import get_current_user
 
 router = APIRouter()
 
@@ -66,7 +67,10 @@ router = APIRouter()
     },
     tags=["문법 검사"]
 )
-async def check_grammar_endpoint(request: models.GrammarCheckRequest):
+async def check_grammar_endpoint(
+    request: models.GrammarCheckRequest,
+    current_user = Depends(get_current_user)
+):
     """입력 텍스트의 문법을 Gemini API로 검사하고 교정합니다."""
     try:
         # Gemini API는 blocking이므로 asyncio.to_thread로 비동기 처리

@@ -106,8 +106,11 @@
 
 <script setup>
 import { ref, reactive } from 'vue';
+import { useRouter } from 'vue-router';
 import { grammarAPI } from '../services/api';
+import auth from '../store/auth';
 
+const router = useRouter();
 const inputText = ref('');
 const isAnalyzing = ref(false);
 const showResult = ref(false);
@@ -133,6 +136,13 @@ const getScoreClass = (score) => {
 };
 
 const analyzeText = async () => {
+  // 로그인 확인
+  if (!auth.state.isLoggedIn) {
+    alert('문법 검사는 로그인 후 이용 가능합니다.');
+    router.push('/login');
+    return;
+  }
+
   if (inputText.value.trim() === '') {
     alert('검사할 텍스트를 입력해주세요.');
     return;
@@ -160,6 +170,14 @@ const analyzeText = async () => {
 
   } catch (error) {
     console.error('API 호출 중 오류 발생:', error);
+    
+    // 401 Unauthorized 에러 처리
+    if (error.response?.status === 401) {
+      alert('로그인이 필요합니다.');
+      router.push('/login');
+      return;
+    }
+    
     let errorMessage = '문법 검사에 실패했습니다.';
     if (error.response) {
       errorMessage += ` (오류: ${error.response.status})`;

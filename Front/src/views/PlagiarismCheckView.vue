@@ -87,8 +87,11 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { plagiarismAPI } from '../services/api';
+import auth from '../store/auth';
 
+const router = useRouter();
 const content = ref('');
 const loading = ref(false);
 const result = ref(null);
@@ -100,6 +103,13 @@ const getScoreClass = (score) => {
 };
 
 const checkPlagiarism = async () => {
+  // 로그인 확인
+  if (!auth.state.isLoggedIn) {
+    alert('표절 검사는 로그인 후 이용 가능합니다.');
+    router.push('/login');
+    return;
+  }
+
   if (content.value.trim().length < 10) return;
   loading.value = true;
   result.value = null;
@@ -110,6 +120,12 @@ const checkPlagiarism = async () => {
     result.value = data;
   } catch (e) {
     console.error(e);
+    // 401 Unauthorized 에러 처리
+    if (e.response?.status === 401) {
+      alert('로그인이 필요합니다.');
+      router.push('/login');
+      return;
+    }
     alert('표절 검사 중 오류가 발생했습니다: ' + (e.response?.data?.detail || e.message));
   } finally {
     loading.value = false;
